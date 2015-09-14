@@ -549,6 +549,9 @@ public:
     }
     readValue();
     updateTimeStamp();
+    // Reset the UDF flag because this might have been the first time that the
+    // record has been processed.
+    this->record->udf = 0;
     // If the record is in I/O Intr mode, we have to check whether more values
     // are pending for reception because we might not receive another
     // notification from the polling thread.
@@ -705,6 +708,8 @@ public:
       // Initialize value from device.
       readValue();
       updateTimeStamp();
+      // Reset the UDF flag because we now have a valid value.
+      this->record->udf = 0;
     }
   }
 
@@ -855,6 +860,9 @@ public:
     dataAccess->read(record->bptr);
     record->nord = record->nelm;
     updateTimeStamp();
+    // Reset the UDF flag because this might have been the first time that the
+    // record has been processed.
+    this->record->udf = 0;
     // If the record is in I/O Intr mode, we have to check whether more values
     // are pending for reception because we might not receive another
     // notification from the polling thread.
@@ -955,6 +963,8 @@ public:
       dataAccess->read(record->bptr);
       record->nord = record->nelm;
       updateTimeStamp();
+      // Reset the UDF flag because we now have a valid value.
+      this->record->udf = 0;
     }
   }
 
