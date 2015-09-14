@@ -19,7 +19,9 @@
 
 #include <stdexcept>
 
+#include <boost/chrono.hpp>
 #include <boost/thread.hpp>
+#include <boost/unordered_map.hpp>
 
 #include "mtca4uDeviceRegistry.h"
 
@@ -44,10 +46,58 @@ public:
   }
 
   void operator()() {
+    // EPICS will not process an interrupt request if the scan engine is not
+    // running yet. Therefore, we occasionally have to check whether an
+    // interrupt that has been scheduled earlier has actually been processed.
+    // We store the last time that an interrupt has been scheduled for each
+    // process variable and schedule another one, if too much time (we allow up
+    // to 100 ms) has been spent with the interrupt still pending. In order to
+    // reduce the number of calculations needed, we actually store the last time
+    // plus the timeout, so that we only have a simple compare operation.
+    boost::unordered_map<std::string,
+        boost::chrono::high_resolution_clock::time_point> processVariableInterruptRequestTimeout;
+    boost::chrono::milliseconds timeout(100);
     while (!boost::this_thread::interruption_requested()) {
+      boost::chrono::high_resolution_clock::time_point currentTime(
+          boost::chrono::high_resolution_clock::now());
       boost::chrono::microseconds::duration pollingInterval;
       {
         boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
+        // Check whether earlier interrupt requests have been processed.
+        for (boost::unordered_map<std::string,
+            boost::chrono::high_resolution_clock::time_point>::iterator i =
+            processVariableInterruptRequestTimeout.begin();
+            i != processVariableInterruptRequestTimeout.end();) {
+          if (currentTime > i->second) {
+            // If the process variable is registered in this map, it must also
+            // exist in the processVariableSupportMap, so we can use find(...)
+            // without having to check the return value.
+            DeviceRegistry::ProcessVariableSupport::SharedPtr processVariableSupport =
+                device->processVariableSupportMap.find(i->first)->second;
+            if (processVariableSupport->interruptHandlingPending) {
+              if (processVariableSupport->interruptHandler) {
+                processVariableSupport->interruptHandler->interrupt();
+                // Update the timeout.
+                i->second = currentTime + timeout;
+              } else {
+                // If the interrupt handler has been removed, we cannot schedule
+                // another interrupt request and there is no sense in keeping
+                // the process variable in the map.
+                i = processVariableInterruptRequestTimeout.erase(i);
+                continue;
+              }
+            } else {
+              // The interrupt has been handled so there is no need to schedule
+              // another interrupt request and we can remove the current process
+              // variable from the map.
+              i = processVariableInterruptRequestTimeout.erase(i);
+              continue;
+            }
+          }
+          // Increment the iterator. We do not do this in the header of the for
+          // loop because we have to skip this step when we remove elements.
+          ++i;
+        }
         ProcessVariable::SharedPtr nextProcessVariable;
         nextProcessVariable = device->pvManager->nextNotification();
         while (nextProcessVariable) {
@@ -63,6 +113,9 @@ public:
                   nextProcessVariable->receive();
               if (pvSupport->interruptHandlingPending) {
                 pvSupport->interruptHandler->interrupt();
+                processVariableInterruptRequestTimeout.insert(
+                    std::make_pair(nextProcessVariable->getName(),
+                        currentTime + timeout));
               }
             }
           }
