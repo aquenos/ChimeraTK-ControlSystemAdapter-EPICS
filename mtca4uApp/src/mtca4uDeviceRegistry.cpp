@@ -26,6 +26,10 @@
 namespace mtca4u {
 namespace epics {
 
+// Static member variables need an instance...
+DeviceRegistry::DeviceMap DeviceRegistry::deviceMap;
+boost::recursive_mutex DeviceRegistry::mutex;
+
 namespace {
 
 /**
