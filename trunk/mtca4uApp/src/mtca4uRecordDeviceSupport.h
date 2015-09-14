@@ -612,13 +612,8 @@ private:
     }
 
     void interrupt() {
-      // If another interrupt is pending, we do not receive a new value but wait
-      // for this interrupt to be processed first.
-      if (!recordDeviceSupport.processVariableSupport->interruptHandlingPending) {
-        recordDeviceSupport.processVariable->receive();
-        // Schedule processing of the record.
-        scanIoRequest(recordDeviceSupport.ioScanPvt);
-      }
+      // Schedule processing of the record.
+      scanIoRequest(recordDeviceSupport.ioScanPvt);
     }
 
   };
@@ -905,20 +900,15 @@ private:
     // It is okay to use a reference because the record support is never
     // destroyed once it has been constructed successfully and the the interrupt
     // handler is never used before the record support has been constructed.
-    RecordDeviceSupport &recordSupport;
+    RecordDeviceSupport &recordDeviceSupport;
 
-    InterruptHandlerImpl(RecordDeviceSupport &recordSupport) :
-        recordSupport(recordSupport) {
+    InterruptHandlerImpl(RecordDeviceSupport &recordDeviceSupport) :
+        recordDeviceSupport(recordDeviceSupport) {
     }
 
     void interrupt() {
-      // If another interrupt is pending, we do not receive a new value but wait
-      // for this interrupt to be processed first.
-      if (!recordSupport.processVariableSupport->interruptHandlingPending) {
-        recordSupport.processVariable->receive();
-        // Schedule processing of the record.
-        scanIoRequest(recordSupport.ioScanPvt);
-      }
+      // Schedule processing of the record.
+      scanIoRequest(recordDeviceSupport.ioScanPvt);
     }
 
   };
