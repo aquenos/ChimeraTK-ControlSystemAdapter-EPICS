@@ -26,6 +26,7 @@
 
 #include <boost/thread.hpp>
 
+extern "C" {
 #include <aaiRecord.h>
 #include <aaoRecord.h>
 #include <aiRecord.h>
@@ -43,6 +44,7 @@
 #include <mbboDirectRecord.h>
 #include <menuConvert.h>
 #include <waveformRecord.h>
+}
 
 #include <string>
 #include <utility>
