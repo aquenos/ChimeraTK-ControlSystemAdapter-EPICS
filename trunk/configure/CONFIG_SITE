@@ -30,5 +30,13 @@ CHECK_RELEASE = YES
 #   a Microsoft FTP server say, or on some NFS configurations.
 #IOCS_APPL_TOP = </IOC's/absolute/path/to/install/top>
 
+BOOST = /usr
+BOOST_INCLUDE = $(BOOST)/include
+BOOST_LIB = $(BOOST)/lib
+
+MTCA4U = /opt/mtca4u
+MTCA4U_INCLUDE = $(MTCA4U)/include
+MTCA4U_LIB = $(MTCA4U)/lib
+
 # Allow user to override settings locally.
 -include $(TOP)/configure/CONFIG_SITE.local
