@@ -310,7 +310,7 @@ struct ArrayDataAccessImpl: public ArrayDataAccess {
     if (recordArraySize != vector.size()) {
       throw std::runtime_error("Array sizes do not match.");
     }
-    std::memcpy(array, &(vector[0]), recordArraySize);
+    std::memcpy(array, &(vector[0]), recordArraySize * sizeof(ValueType));
   }
 
   void write(void *array) {
@@ -318,7 +318,7 @@ struct ArrayDataAccessImpl: public ArrayDataAccess {
     if (recordArraySize != vector.size()) {
       throw std::runtime_error("Array sizes do not match.");
     }
-    std::memcpy(&(vector[0]), array, recordArraySize);
+    std::memcpy(&(vector[0]), array, recordArraySize * sizeof(ValueType));
   }
 
 };
