@@ -15,6 +15,8 @@ LIBRARY_IOC += mtca4uEpics
 # install mtca4u.dbd into <top>/dbd
 DBD += mtca4u.dbd
 
+INC += mtca4uDeviceRegistry.h
+
 # specify all source files to be compiled and added to the library
 mtca4uEpics_SRCS += mtca4uDeviceRegistry.cpp
 mtca4uEpics_SRCS += mtca4uRecordDefinitions.cpp
