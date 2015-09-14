@@ -33,6 +33,7 @@ extern "C" {
 #include <aoRecord.h>
 #include <biRecord.h>
 #include <boRecord.h>
+#include <callback.h>
 #include <dbCommon.h>
 #include <dbFldTypes.h>
 #include <dbScan.h>
@@ -580,6 +581,14 @@ public:
       // The interrupt pending flag should be false, however we reset it to be
       // extra sure.
       processVariableSupport->interruptHandlingPending = false;
+      // If this record has been configured for I/O Intr mode right from the
+      // beginning, it is possible that we missed an update because the
+      // interrupt handler was not registered yet. Therefore we schedule one
+      // processing of the record, even if no new data is available.
+      // Unfortunately, scanIoRequest does not seem to work before the interrupt
+      // registration has finished, therefore we have to use a regular callback.
+      callbackRequestProcessCallback(&this->processCallback, priorityMedium,
+          this->record);
     } else {
       // Remove interrupt handler
       processVariableSupport->interruptHandler =
@@ -621,6 +630,7 @@ private:
   RecordType *record;
   IOSCANPVT ioScanPvt;
   DeviceRegistry::ProcessVariableInterruptHandler::SharedPtr interruptHandler;
+  CALLBACK processCallback;
 
   void updateTimeStamp() {
     TimeStamp timeStamp = processVariable->getTimeStamp();
@@ -886,6 +896,14 @@ public:
       // The interrupt pending flag should be false, however we reset it to be
       // extra sure.
       processVariableSupport->interruptHandlingPending = false;
+      // If this record has been configured for I/O Intr mode right from the
+      // beginning, it is possible that we missed an update because the
+      // interrupt handler was not registered yet. Therefore we schedule one
+      // processing of the record, even if no new data is available.
+      // Unfortunately, scanIoRequest does not seem to work before the interrupt
+      // registration has finished, therefore we have to use a regular callback.
+      callbackRequestProcessCallback(&this->processCallback, priorityMedium,
+          this->record);
     } else {
       // Remove interrupt handler
       processVariableSupport->interruptHandler =
@@ -916,6 +934,7 @@ private:
   RecordType *record;
   IOSCANPVT ioScanPvt;
   DeviceRegistry::ProcessVariableInterruptHandler::SharedPtr interruptHandler;
+  CALLBACK processCallback;
 
   void updateTimeStamp() {
     TimeStamp timeStamp = processVariable->getTimeStamp();
