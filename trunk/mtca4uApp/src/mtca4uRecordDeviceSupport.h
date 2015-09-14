@@ -153,37 +153,37 @@ struct ScalarDataAccess {
    * Reads a 32-bit signed integer, converting from the process variable's
    * actual type if needed.
    */
-  virtual std::int32_t readInt32();
+  virtual std::int32_t readInt32() = 0;
 
   /**
    * Writes a 32-bit signed integer, converting to the process variable's
    * actual type if needed.
    */
-  virtual void writeInt32(std::int32_t value);
+  virtual void writeInt32(std::int32_t value) = 0;
 
   /**
    * Reads a 32-bit unsigned integer, converting from the process variable's
    * actual type if needed.
    */
-  virtual std::uint32_t readUInt32();
+  virtual std::uint32_t readUInt32() = 0;
 
   /**
    * Writes a 32-bit unsigned integer, converting to the process variable's
    * actual type if needed.
    */
-  virtual void writeUInt32(std::uint32_t value);
+  virtual void writeUInt32(std::uint32_t value) = 0;
 
   /**
    * Reads a double, converting from the process variable's actual type if
    * needed.
    */
-  virtual double readDouble();
+  virtual double readDouble() = 0;
 
   /**
    * Writes a double, converting to the process variable's actual type if
    * needed.
    */
-  virtual void writeDouble(double value);
+  virtual void writeDouble(double value) = 0;
 
   /**
    * Virtual destructor. This is only defined to avoid compiler warnings.
