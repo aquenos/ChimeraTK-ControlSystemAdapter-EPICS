@@ -1,0 +1,13 @@
+.cproject
+.project
+.settings
+bin
+configure/CONFIG_SITE.local
+configure/O.*
+configure/RELEASE.local
+db
+dbd
+include
+lib
+mtca4uApp/Db/O.*
+mtca4uApp/src/O.*
