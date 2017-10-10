@@ -16,7 +16,7 @@ Installation
 ------------
 
 Please copy `configure/EXAMPLE_CONFIG_SITE.local` to
-`configure/`CONFIG_SITE.local` and `configure/EXAMPLE_RELEASE.local` to
+`configure/CONFIG_SITE.local` and `configure/EXAMPLE_RELEASE.local` to
 `configure/RELEASE.local` and adjust the paths and compiler settings in these
 files.
 
