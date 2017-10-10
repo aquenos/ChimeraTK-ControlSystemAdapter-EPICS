@@ -9,5 +9,5 @@ db
 dbd
 include
 lib
-mtca4uApp/Db/O.*
-mtca4uApp/src/O.*
+chimeraTKApp/Db/O.*
+chimeraTKApp/src/O.*

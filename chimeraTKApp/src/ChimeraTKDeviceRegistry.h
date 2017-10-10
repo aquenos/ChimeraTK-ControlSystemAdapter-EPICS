@@ -1,7 +1,7 @@
 /*
- * MTCA4U for EPICS.
+ * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015 aquenos GmbH
+ * Copyright 2015-2017 aquenos GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,22 +17,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MTCA4U_EPICS_DEVICE_REGISTRY_H
-#define MTCA4U_EPICS_DEVICE_REGISTRY_H
+#ifndef CHIMERATK_EPICS_DEVICE_REGISTRY_H
+#define CHIMERATK_EPICS_DEVICE_REGISTRY_H
 
 #include <boost/smart_ptr.hpp>
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
 
-#include <ControlSystemPVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
 
-namespace mtca4u {
-namespace epics {
+namespace ChimeraTK {
+namespace EPICS {
 
 /**
- * Device registry for MTCA4U devices. Each MTCA4U device has to be registered
- * with this registry using a unique name. This name is then used to refer to
- * the device from an EPICS record.
+ * Device registry for ChimeraTK devices. Each ChimeraTK device has to be
+ * registered with this registry using a unique name. This name is then used to
+ * refer to the device from an EPICS record.
  */
 class DeviceRegistry {
 
@@ -44,6 +44,11 @@ public:
    * variables.
    */
   struct ProcessVariableInterruptHandler {
+
+    /**
+     * Destructor. Virtual classes need virtual destructors.
+     */
+    virtual ~ProcessVariableInterruptHandler();
 
     /**
      * Shared pointer to this type.
@@ -180,7 +185,7 @@ private:
 
 };
 
-} // namespace epics
-} // namespace mtca4u
+} // namespace EPICS
+} // namespace ChimeraTK
 
-#endif // MTCA4U_EPICS_DEVICE_REGISTRY_H
+#endif // CHIMERATK_EPICS_DEVICE_REGISTRY_H

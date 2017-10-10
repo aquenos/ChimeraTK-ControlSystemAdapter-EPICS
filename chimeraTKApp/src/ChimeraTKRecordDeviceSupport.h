@@ -1,7 +1,7 @@
 /*
- * MTCA4U for EPICS.
+ * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015 aquenos GmbH
+ * Copyright 2015-2017 aquenos GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MTCA4U_EPICS_RECORD_DEVICE_SUPPORT_H
-#define MTCA4U_EPICS_RECORD_DEVICE_SUPPORT_H
+#ifndef CHIMERATK_EPICS_RECORD_DEVICE_SUPPORT_H
+#define CHIMERATK_EPICS_RECORD_DEVICE_SUPPORT_H
 
 #include <cstring>
 #include <stdexcept>
+#include <sstream>
 #include <string>
 
 #include <boost/thread.hpp>
@@ -50,10 +51,10 @@ extern "C" {
 #include <string>
 #include <utility>
 
-#include "mtca4uDeviceRegistry.h"
+#include "ChimeraTKDeviceRegistry.h"
 
-namespace mtca4u {
-namespace epics {
+namespace ChimeraTK {
+namespace EPICS {
 
 /**
  * Data direction of a record.
@@ -204,7 +205,7 @@ struct ScalarDataAccessImpl: public ScalarDataAccess {
   /**
    * Shared pointer to this type.
    */
-  typename ProcessScalar<ValueType>::SharedPtr pv;
+  typename ProcessArray<ValueType>::SharedPtr pv;
 
   /**
    * Constructor. Takes a pointer to the process variable that this data-access
@@ -212,35 +213,44 @@ struct ScalarDataAccessImpl: public ScalarDataAccess {
    */
   ScalarDataAccessImpl(ProcessVariable::SharedPtr processVariable) :
       pv(
-          boost::dynamic_pointer_cast<ProcessScalar<ValueType>, ProcessVariable>(
+          boost::dynamic_pointer_cast<ProcessArray<ValueType>, ProcessVariable>(
               processVariable)) {
     if (!pv) {
       throw std::invalid_argument("Process variable is not of expected type.");
     }
+    // The control-system adapter core ensures that number of elements does not
+    // change after initialization. For this reason, it is sufficient when we
+    // check the number of elements once during initialization.
+    if (pv->getNumberOfSamples() != 1) {
+      throw std::invalid_argument(
+          (std::ostringstream() << "Process variable has "
+              << pv->getNumberOfSamples()
+              << "elements, but the records needs exactly one element.").str());
+    }
   }
 
   std::int32_t readInt32() {
-    return static_cast<std::int32_t>(pv->get());
+    return static_cast<std::int32_t>(pv->accessData(0));
   }
 
   void writeInt32(std::int32_t value) {
-    pv->set(static_cast<ValueType>(value));
+    pv->accessData(0) = static_cast<ValueType>(value);
   }
 
   std::uint32_t readUInt32() {
-    return static_cast<std::uint32_t>(pv->get());
+    return static_cast<std::uint32_t>(pv->accessData(0));
   }
 
   void writeUInt32(std::uint32_t value) {
-    pv->set(static_cast<ValueType>(value));
+    pv->accessData(0) = static_cast<ValueType>(value);
   }
 
   double readDouble() {
-    return static_cast<double>(pv->get());
+    return static_cast<double>(pv->accessData(0));
   }
 
   void writeDouble(double value) {
-    pv->set(static_cast<ValueType>(value));
+    pv->accessData(0) = static_cast<ValueType>(value);
   }
 
 };
@@ -300,26 +310,30 @@ struct ArrayDataAccessImpl: public ArrayDataAccess {
     if (!pv) {
       throw std::invalid_argument("Process variable is not of expected type.");
     }
-    if (pv->getConst().size() != recordArraySize) {
+    if (pv->getNumberOfSamples() != recordArraySize) {
       throw std::runtime_error(
-          "Array sizes do not match. Please check the NELM field.");
+          (std::ostringstream()
+              << "Array sizes do not match. The device variable has "
+              << pv->getNumberOfSamples()
+              << " elements, while the NELM field specifies " << recordArraySize
+              << " elements.").str());
     }
   }
 
   void read(void *array) {
-    std::vector<ValueType> const & vector = pv->getConst();
+    std::vector<ValueType> const & vector = pv->accessChannel(0);
     if (recordArraySize != vector.size()) {
       throw std::runtime_error("Array sizes do not match.");
     }
-    std::memcpy(array, &(vector[0]), recordArraySize * sizeof(ValueType));
+    std::memcpy(array, vector.data(), recordArraySize * sizeof(ValueType));
   }
 
   void write(void *array) {
-    std::vector<ValueType> & vector = pv->get();
+    std::vector<ValueType> & vector = pv->accessChannel(0);
     if (recordArraySize != vector.size()) {
       throw std::runtime_error("Array sizes do not match.");
     }
-    std::memcpy(&(vector[0]), array, recordArraySize * sizeof(ValueType));
+    std::memcpy(vector.data(), array, recordArraySize * sizeof(ValueType));
   }
 
 };
@@ -543,8 +557,8 @@ public:
     // If interrupt handling is pending we do not receive the process
     // variable because the current value has not been used yet.
     if (!processVariableSupport->interruptHandlingPending
-        && processVariable->isReceiver()) {
-      processVariable->receive();
+        && processVariable->isReadable()) {
+      processVariable->readNonBlocking();
     } else {
       processVariableSupport->interruptHandlingPending = false;
     }
@@ -557,7 +571,7 @@ public:
     // are pending for reception because we might not receive another
     // notification from the polling thread.
     if (processVariableSupport->interruptHandler
-        && processVariable->receive()) {
+        && processVariable->readNonBlocking()) {
       processVariableSupport->interruptHandlingPending = true;
       // Schedule another processing of the record.
       scanIoRequest(ioScanPvt);
@@ -571,7 +585,7 @@ public:
     boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
     if (command == 0) {
       // Register interrupt handler
-      if (!processVariable->isReceiver()) {
+      if (!processVariable->isReadable()) {
         // By setting iopvt to null, we can signal that I/O Intr mode is not
         // supported for this record.
         *iopvt = NULL;
@@ -706,7 +720,7 @@ public:
     initializeDataAccess(processVariable);
     {
       boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
-      if (!processVariable->isSender()) {
+      if (!processVariable->isWriteable()) {
         throw std::runtime_error(
             "The process variable that is used with an output record must be a sender.");
       }
@@ -724,7 +738,7 @@ public:
   void process() {
     boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
     writeValue();
-    processVariable->send();
+    processVariable->write();
   }
 
   /**
@@ -857,8 +871,8 @@ public:
     // If interrupt handling is pending we do not receive the process
     // variable because the current value has not been used yet.
     if (!processVariableSupport->interruptHandlingPending
-        && processVariable->isReceiver()) {
-      processVariable->receive();
+        && processVariable->isReadable()) {
+      processVariable->readNonBlocking();
     } else {
       processVariableSupport->interruptHandlingPending = false;
     }
@@ -872,7 +886,7 @@ public:
     // are pending for reception because we might not receive another
     // notification from the polling thread.
     if (processVariableSupport->interruptHandler
-        && processVariable->receive()) {
+        && processVariable->readNonBlocking()) {
       processVariableSupport->interruptHandlingPending = true;
       // Schedule another processing of the record.
       scanIoRequest(ioScanPvt);
@@ -886,7 +900,7 @@ public:
     boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
     if (command == 0) {
       // Register interrupt handler
-      if (!processVariable->isReceiver()) {
+      if (!processVariable->isReadable()) {
         // By setting iopvt to null, we can signal that I/O Intr mode is not
         // supported for this record.
         *iopvt = NULL;
@@ -965,7 +979,7 @@ public:
     initializeDataAccess(processVariable, record->ftvl, record->nelm);
     {
       boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
-      if (!processVariable->isSender()) {
+      if (!processVariable->isWriteable()) {
         throw std::runtime_error(
             "The process variable that is used with an output record must be a sender.");
       }
@@ -983,7 +997,7 @@ public:
   void process() {
     boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
     dataAccess->write(record->bptr);
-    processVariable->send();
+    processVariable->write();
     record->nord = record->nelm;
   }
 
@@ -1000,7 +1014,7 @@ private:
 
 };
 
-} // namespace epics
-} // namespace mtca4u
+} // namespace EPICS
+} // namespace ChimeraTK
 
-#endif // MTCA4U_EPICS_RECORD_DEVICE_SUPPORT_H
+#endif // CHIMERATK_EPICS_RECORD_DEVICE_SUPPORT_H

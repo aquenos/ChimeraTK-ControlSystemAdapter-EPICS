@@ -1,7 +1,7 @@
 /*
- * MTCA4U for EPICS.
+ * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015 aquenos GmbH
+ * Copyright 2015-2017 aquenos GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,16 +17,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ChimeraTKDeviceRegistry.h"
+
 #include <stdexcept>
 
 #include <boost/chrono.hpp>
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
 
-#include "mtca4uDeviceRegistry.h"
 
-namespace mtca4u {
-namespace epics {
+namespace ChimeraTK {
+namespace EPICS {
 
 // Static member variables need an instance...
 DeviceRegistry::DeviceMap DeviceRegistry::deviceMap;
@@ -110,7 +111,7 @@ public:
             if (pvSupport->interruptHandler
                 && !pvSupport->interruptHandlingPending) {
               pvSupport->interruptHandlingPending =
-                  nextProcessVariable->receive();
+                  nextProcessVariable->readNonBlocking();
               if (pvSupport->interruptHandlingPending) {
                 pvSupport->interruptHandler->interrupt();
                 processVariableInterruptRequestTimeout.insert(
@@ -197,5 +198,5 @@ DeviceRegistry::Device::SharedPtr DeviceRegistry::getDevice(
   return i->second;
 }
 
-} // namespace epics
-} // namespace mtca4u
+} // namespace EPICS
+} // namespace ChimeraTK

@@ -8,33 +8,26 @@ include $(TOP)/configure/CONFIG
 #==================================================
 # build a support library
 
-LIBRARY_IOC += mtca4uEpics
+LIBRARY_IOC += chimeraTkEpics
 
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
 # install mtca4u.dbd into <top>/dbd
-DBD += mtca4u.dbd
+DBD += chimeraTK.dbd
 
-INC += mtca4uDeviceRegistry.h
+INC += ChimeraTKDeviceRegistry.h
 
 # specify all source files to be compiled and added to the library
-mtca4uEpics_SRCS += mtca4uDeviceRegistry.cpp
-mtca4uEpics_SRCS += mtca4uRecordDefinitions.cpp
+chimeraTkEpics_SRCS += ChimeraTKDeviceRegistry.cpp
+chimeraTkEpics_SRCS += ChimeraTKRecordDefinitions.cpp
 
-mtca4uEpics_LIBS += boost_thread
-mtca4uEpics_LIBS += ControlSystemAdapter
+chimeraTkEpics_SYS_LIBS += boost_thread-mt
+chimeraTkEpics_SYS_LIBS += ChimeraTK-ControlSystemAdapter
 
-mtca4uEpics_LIBS += $(EPICS_BASE_IOC_LIBS)
-
-boost_thread_DIR = $(BOOST_LIB)
-ControlSystemAdapter_DIR = $(MTCA4U_LIB)
-
-USR_INCLUDES += -I$(BOOST_INCLUDE)
-USR_INCLUDES += -I$(MTCA4U_INCLUDE)
+chimeraTkEpics_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #===========================
 
 include $(TOP)/configure/RULES
 #----------------------------------------
 #  ADD RULES AFTER THIS LINE
-

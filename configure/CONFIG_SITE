@@ -30,13 +30,44 @@ CHECK_RELEASE = YES
 #   a Microsoft FTP server say, or on some NFS configurations.
 #IOCS_APPL_TOP = </IOC's/absolute/path/to/install/top>
 
-BOOST = /usr
-BOOST_INCLUDE = $(BOOST)/include
-BOOST_LIB = $(BOOST)/lib
-
-MTCA4U = /opt/mtca4u
-MTCA4U_INCLUDE = $(MTCA4U)/include
-MTCA4U_LIB = $(MTCA4U)/lib
-
 # Allow user to override settings locally.
 -include $(TOP)/configure/CONFIG_SITE.local
+
+# We check for the more specific variables after including CONFIG_SITE.local.
+# This means that a user can simply override the generic variables and have
+# the more specific ones generated from this.
+
+ifdef BOOST_DIR
+  ifndef BOOST_INCLUDE
+    BOOST_INCLUDE = $(BOOST_DIR)/include
+  endif
+  ifndef BOOST_LIB
+    BOOST_LIB = $(BOOST_DIR)/lib
+  endif
+endif
+
+ifdef CHIMERATK_DIR
+  ifndef CHIMERATK_INCLUDE
+    CHIMERATK_INCLUDE = $(CHIMERATK_DIR)/include
+  endif
+  ifndef CHIMERATK_LIB
+    CHIMERATK_LIB = $(CHIMERATK_DIR)/lib
+  endif
+endif
+
+# If the include or library paths are specified, we add them to the compiler /
+# linker flags.
+
+ifdef BOOST_INCLUDE
+  USR_CXXFLAGS += -I$(BOOST_INCLUDE)
+endif
+ifdef BOOST_LIB
+  USR_LDFLAGS += -L$(BOOST_LIB)
+endif
+
+ifdef CHIMERATK_INCLUDE
+  USR_CXXFLAGS += -I$(CHIMERATK_INCLUDE)
+endif
+ifdef CHIMERATK_LIB
+  USR_LDFLAGS += -L$(CHIMERATK_LIB)
+endif

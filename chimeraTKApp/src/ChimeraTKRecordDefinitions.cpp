@@ -1,7 +1,7 @@
 /*
- * MTCA4U for EPICS.
+ * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015 aquenos GmbH
+ * Copyright 2015-2017 aquenos GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,9 +31,9 @@ extern "C" {
 #include <epicsExport.h>
 }
 
-#include "mtca4uRecordDeviceSupport.h"
+#include "ChimeraTKRecordDeviceSupport.h"
 
-using namespace mtca4u::epics;
+using namespace ChimeraTK::EPICS;
 
 /**
  * Prints an error message with thread and time information.

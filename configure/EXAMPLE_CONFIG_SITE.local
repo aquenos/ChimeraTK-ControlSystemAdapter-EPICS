@@ -1,7 +1,26 @@
-BOOST = /opt/boost_1_55_0
-BOOST_INCLUDE = $(BOOST)/include
-BOOST_LIB = $(BOOST)/lib
+# If the Boost libraries are not in one of the system paths, their paths have
+# to be set here.
 
-MTCA4U = /opt/mtca4u
-MTCA4U_INCLUDE = $(MTCA4U)/include
-MTCA4U_LIB = $(MTCA4U)/lib
+# BOOST_DIR = /opt/boost_1_55_0
+
+# BOOST_INCLUDE and BOOST_LIB only have to be defined if they do not match
+# $(BOOST_DIR)/include and $(BOOST_DIR)/lib
+
+# BOOST_INCLUDE = $(BOOST_DIR)/include
+# BOOST_LIB = $(BOOST_DIR)/lib
+
+# If the ChimeraTK libraries are not in one of the system paths, their paths
+# have to be set here.
+
+# CHIMERATK_DIR = /opt/chimeraTK
+
+# CHIMERATK_INCLUDE and CHIMERATK_LIB only have to be defined if they do not
+# match $(CHIMERATK_DIR)/include and $(CHIMERATK_DIR)/lib
+
+# CHIMERATK_INCLUDE = $(CHIMERATK)/include
+# CHIMERATK_LIB = $(CHIMERATK)/lib
+
+# If the compiler is not expecting C++ 11 code by default, it has to be told
+# to do so.
+
+# USR_CXXFLAGS += -std=c++11
