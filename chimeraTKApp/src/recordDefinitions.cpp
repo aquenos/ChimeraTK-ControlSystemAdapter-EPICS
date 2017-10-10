@@ -208,9 +208,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN read;
-} devAaiMtca4u = { 5, NULL, NULL, initRecord<aaiRecord, true, INPUT>, getIoInt<
-    aaiRecord, true>, processRecord<aaiRecord, true, INPUT> };
-epicsExportAddress(dset, devAaiMtca4u)
+} devAaiChimeraTK = { 5, NULL, NULL, initRecord<aaiRecord, true, INPUT>,
+    getIoInt<aaiRecord, true>, processRecord<aaiRecord, true, INPUT> };
+epicsExportAddress(dset, devAaiChimeraTK)
 ;
 
 /**
@@ -223,9 +223,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN write;
-} devAaoMtca4u = { 5, NULL, NULL, initRecord<aaoRecord, true, OUTPUT>, NULL,
+} devAaoChimeraTK = { 5, NULL, NULL, initRecord<aaoRecord, true, OUTPUT>, NULL,
     processRecord<aaoRecord, true, OUTPUT> };
-epicsExportAddress(dset, devAaoMtca4u)
+epicsExportAddress(dset, devAaoChimeraTK)
 ;
 
 /**
@@ -239,9 +239,9 @@ struct {
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN read;
   DEVSUPFUN special_linconv;
-} devAiMtca4u = { 6, NULL, NULL, initRecord<aiRecord, false, INPUT>, getIoInt<
-    aiRecord, false>, processAiRecord, NULL };
-epicsExportAddress(dset, devAiMtca4u)
+} devAiChimeraTK = { 6, NULL, NULL, initRecord<aiRecord, false, INPUT>,
+    getIoInt<aiRecord, false>, processAiRecord, NULL };
+epicsExportAddress(dset, devAiChimeraTK)
 ;
 
 /**
@@ -255,9 +255,9 @@ struct {
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN write;
   DEVSUPFUN special_linconv;
-} devAoMtca4u = { 6, NULL, NULL, initAoRecord,
+} devAoChimeraTK = { 6, NULL, NULL, initAoRecord,
 NULL, processRecord<aoRecord, false, OUTPUT>, nullptr };
-epicsExportAddress(dset, devAoMtca4u)
+epicsExportAddress(dset, devAoChimeraTK)
 ;
 
 /**
@@ -270,9 +270,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN read;
-} devBiMtca4u = { 5, NULL, NULL, initRecord<biRecord, false, INPUT>, getIoInt<
-    biRecord, false>, processRecord<biRecord, false, INPUT> };
-epicsExportAddress(dset, devBiMtca4u)
+} devBiChimeraTK = { 5, NULL, NULL, initRecord<biRecord, false, INPUT>,
+    getIoInt<biRecord, false>, processRecord<biRecord, false, INPUT> };
+epicsExportAddress(dset, devBiChimeraTK)
 ;
 
 /**
@@ -285,9 +285,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN write;
-} devBoMtca4u = { 5, NULL, NULL, initRecord<boRecord, false, OUTPUT>,
+} devBoChimeraTK = { 5, NULL, NULL, initRecord<boRecord, false, OUTPUT>,
 NULL, processRecord<boRecord, false, OUTPUT> };
-epicsExportAddress(dset, devBoMtca4u)
+epicsExportAddress(dset, devBoChimeraTK)
 ;
 
 /**
@@ -300,9 +300,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN read;
-} devLonginMtca4u = { 5, NULL, NULL, initRecord<longinRecord, false, INPUT>,
+} devLonginChimeraTK = { 5, NULL, NULL, initRecord<longinRecord, false, INPUT>,
     getIoInt<longinRecord, false>, processRecord<longinRecord, false, INPUT> };
-epicsExportAddress(dset, devLonginMtca4u)
+epicsExportAddress(dset, devLonginChimeraTK)
 ;
 
 /**
@@ -315,9 +315,10 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN write;
-} devLongoutMtca4u = { 5, NULL, NULL, initRecord<longoutRecord, false, OUTPUT>,
-NULL, processRecord<longoutRecord, false, OUTPUT> };
-epicsExportAddress(dset, devLongoutMtca4u)
+} devLongoutChimeraTK = { 5, NULL, NULL,
+    initRecord<longoutRecord, false, OUTPUT>,
+    NULL, processRecord<longoutRecord, false, OUTPUT> };
+epicsExportAddress(dset, devLongoutChimeraTK)
 ;
 
 /**
@@ -330,10 +331,10 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN read;
-} devMbbiDirectMtca4u = { 5, NULL, NULL, initRecord<mbbiDirectRecord, false,
+} devMbbiDirectChimeraTK = { 5, NULL, NULL, initRecord<mbbiDirectRecord, false,
     INPUT>, getIoInt<mbbiDirectRecord, false>, processRecord<mbbiDirectRecord,
     false, INPUT> };
-epicsExportAddress(dset, devMbbiDirectMtca4u)
+epicsExportAddress(dset, devMbbiDirectChimeraTK)
 ;
 
 /**
@@ -346,9 +347,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN write;
-} devMbboDirectMtca4u = { 5, NULL, NULL, initRecord<mbboDirectRecord, false,
+} devMbboDirectChimeraTK = { 5, NULL, NULL, initRecord<mbboDirectRecord, false,
     OUTPUT>, NULL, processRecord<mbboDirectRecord, false, OUTPUT> };
-epicsExportAddress(dset, devMbboDirectMtca4u)
+epicsExportAddress(dset, devMbboDirectChimeraTK)
 ;
 
 /**
@@ -361,9 +362,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN read;
-} devMbbiMtca4u = { 5, NULL, NULL, initRecord<mbbiRecord, false, INPUT>,
+} devMbbiChimeraTK = { 5, NULL, NULL, initRecord<mbbiRecord, false, INPUT>,
     getIoInt<mbbiRecord, false>, processRecord<mbbiRecord, false, INPUT> };
-epicsExportAddress(dset, devMbbiMtca4u)
+epicsExportAddress(dset, devMbbiChimeraTK)
 ;
 
 /**
@@ -376,9 +377,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN write;
-} devMbboMtca4u = { 5, NULL, NULL, initRecord<mbboRecord, false, OUTPUT>,
+} devMbboChimeraTK = { 5, NULL, NULL, initRecord<mbboRecord, false, OUTPUT>,
 NULL, processRecord<mbboRecord, false, OUTPUT> };
-epicsExportAddress(dset, devMbboMtca4u)
+epicsExportAddress(dset, devMbboChimeraTK)
 ;
 
 /**
@@ -391,10 +392,10 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN read;
-} devWaveformInMtca4u = { 5, NULL, NULL,
-    initRecord<waveformRecord, true, INPUT>, getIoInt<waveformRecord, true>,
-    processRecord<waveformRecord, true, INPUT> };
-epicsExportAddress(dset, devWaveformInMtca4u)
+} devWaveformInChimeraTK = { 5, NULL, NULL, initRecord<waveformRecord, true,
+    INPUT>, getIoInt<waveformRecord, true>, processRecord<waveformRecord, true,
+    INPUT> };
+epicsExportAddress(dset, devWaveformInChimeraTK)
 ;
 
 /**
@@ -407,9 +408,9 @@ struct {
   DEVSUPFUN init_record;
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN write;
-} devWaveformOutMtca4u = { 5, NULL, NULL, initRecord<waveformRecord, true,
+} devWaveformOutChimeraTK = { 5, NULL, NULL, initRecord<waveformRecord, true,
     OUTPUT>, NULL, processRecord<waveformRecord, true, OUTPUT> };
-epicsExportAddress(dset, devWaveformOutMtca4u)
+epicsExportAddress(dset, devWaveformOutChimeraTK)
 ;
 
 } // extern "C"
