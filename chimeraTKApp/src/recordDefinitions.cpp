@@ -31,7 +31,7 @@ extern "C" {
 #include <epicsExport.h>
 }
 
-#include "ChimeraTKRecordDeviceSupport.h"
+#include "ChimeraTK/EPICS/RecordDeviceSupport.h"
 
 using namespace ChimeraTK::EPICS;
 

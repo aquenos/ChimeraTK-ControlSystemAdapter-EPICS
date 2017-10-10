@@ -8,23 +8,23 @@ include $(TOP)/configure/CONFIG
 #==================================================
 # build a support library
 
-LIBRARY_IOC += chimeraTkEpics
+LIBRARY_IOC += ChimeraTK-ControlSystemAdapter-EPICS
 
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
-# install mtca4u.dbd into <top>/dbd
-DBD += chimeraTK.dbd
+# install chimeraTK.dbd into <top>/dbd
+DBD += ChimeraTK-ControlSystemAdapter-EPICS.dbd
 
-INC += ChimeraTKDeviceRegistry.h
+INC += ChimeraTK/EPICS/DeviceRegistry.h
 
 # specify all source files to be compiled and added to the library
-chimeraTkEpics_SRCS += ChimeraTKDeviceRegistry.cpp
-chimeraTkEpics_SRCS += ChimeraTKRecordDefinitions.cpp
+ChimeraTK-ControlSystemAdapter-EPICS_SRCS += DeviceRegistry.cpp
+ChimeraTK-ControlSystemAdapter-EPICS_SRCS += recordDefinitions.cpp
 
-chimeraTkEpics_SYS_LIBS += boost_thread-mt
-chimeraTkEpics_SYS_LIBS += ChimeraTK-ControlSystemAdapter
+ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += boost_thread-mt
+ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += ChimeraTK-ControlSystemAdapter
 
-chimeraTkEpics_LIBS += $(EPICS_BASE_IOC_LIBS)
+ChimeraTK-ControlSystemAdapter-EPICS_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #===========================
 

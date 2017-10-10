@@ -51,7 +51,7 @@ extern "C" {
 #include <string>
 #include <utility>
 
-#include "ChimeraTKDeviceRegistry.h"
+#include "ChimeraTK/EPICS/DeviceRegistry.h"
 
 namespace ChimeraTK {
 namespace EPICS {

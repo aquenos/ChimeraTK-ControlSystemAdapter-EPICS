@@ -17,13 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ChimeraTKDeviceRegistry.h"
-
 #include <stdexcept>
 
 #include <boost/chrono.hpp>
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
+#include "ChimeraTK/EPICS/DeviceRegistry.h"
 
 
 namespace ChimeraTK {
