@@ -222,10 +222,10 @@ struct ScalarDataAccessImpl: public ScalarDataAccess {
     // change after initialization. For this reason, it is sufficient when we
     // check the number of elements once during initialization.
     if (pv->getNumberOfSamples() != 1) {
-      throw std::invalid_argument(
-          (std::ostringstream() << "Process variable has "
-              << pv->getNumberOfSamples()
-              << "elements, but the records needs exactly one element.").str());
+      std::ostringstream oss;
+      oss << "Process variable has " << pv->getNumberOfSamples()
+          << "elements, but the records needs exactly one element.";
+      throw std::invalid_argument(oss.str());
     }
   }
 
@@ -311,12 +311,12 @@ struct ArrayDataAccessImpl: public ArrayDataAccess {
       throw std::invalid_argument("Process variable is not of expected type.");
     }
     if (pv->getNumberOfSamples() != recordArraySize) {
-      throw std::runtime_error(
-          (std::ostringstream()
-              << "Array sizes do not match. The device variable has "
-              << pv->getNumberOfSamples()
-              << " elements, while the NELM field specifies " << recordArraySize
-              << " elements.").str());
+      std::ostringstream oss;
+      oss << "Array sizes do not match. The device variable has "
+          << pv->getNumberOfSamples()
+          << " elements, while the NELM field specifies "<< recordArraySize
+          << " elements.";
+      throw std::runtime_error(oss.str());
     }
   }
 
