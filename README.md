@@ -21,7 +21,7 @@ Please copy `configure/EXAMPLE_CONFIG_SITE.local` to
 files.
 
 The ChimeraTK Control System Adapter for EPICS needs the Boost C++ libraries and
-the ChimeraTK Control System Adapter core libraryr. If you compiled the
+the ChimeraTK Control System Adapter core library. If you compiled the
 ChimeraTK Control System Adapter core, you most likely already have all required
 Boost libraries. The ChimeraTK Control System Adapter core also needs the
 (ChimeraTK Device Access library)[https://github.com/ChimeraTK/DeviceAccess/].
