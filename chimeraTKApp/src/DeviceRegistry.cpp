@@ -60,7 +60,7 @@ public:
     while (!boost::this_thread::interruption_requested()) {
       boost::chrono::high_resolution_clock::time_point currentTime(
           boost::chrono::high_resolution_clock::now());
-      boost::chrono::microseconds::duration pollingInterval;
+      boost::chrono::microseconds pollingInterval;
       {
         boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
         // Check whether earlier interrupt requests have been processed.
@@ -142,7 +142,7 @@ private:
 } // anonymous namespace
 
 DeviceRegistry::Device::Device() :
-    pollingInterval(boost::chrono::microseconds::duration(100)) {
+    pollingInterval(boost::chrono::microseconds(100)) {
   // We want a small load factor so that the lookups (which are very
   // frequent) are fast.
   processVariableSupportMap.max_load_factor(0.5f);
