@@ -30,6 +30,9 @@ CHECK_RELEASE = YES
 #   a Microsoft FTP server say, or on some NFS configurations.
 #IOCS_APPL_TOP = </IOC's/absolute/path/to/install/top>
 
+# Suffix used for the names of the Boost libraries (e.g. "-mt").
+BOOST_LIBNAME_SUFFIX=
+
 # Allow user to override settings locally.
 -include $(TOP)/configure/CONFIG_SITE.local
 

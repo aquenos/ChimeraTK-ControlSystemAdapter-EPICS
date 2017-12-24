@@ -21,7 +21,8 @@ INC += ChimeraTK/EPICS/DeviceRegistry.h
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += DeviceRegistry.cpp
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += recordDefinitions.cpp
 
-ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += boost_thread-mt
+ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += boost_chrono$(BOOST_LIBNAME_SUFFIX)
+ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += boost_thread$(BOOST_LIBNAME_SUFFIX)
 ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += ChimeraTK-ControlSystemAdapter
 
 ChimeraTK-ControlSystemAdapter-EPICS_LIBS += $(EPICS_BASE_IOC_LIBS)

@@ -9,6 +9,11 @@
 # BOOST_INCLUDE = $(BOOST_DIR)/include
 # BOOST_LIB = $(BOOST_DIR)/lib
 
+# If the Boost library names have a suffix (e.g. "-mt"), this has to be set
+# here.
+
+# BOOST_LIBNAME_SUFFIX=-mt
+
 # If the ChimeraTK libraries are not in one of the system paths, their paths
 # have to be set here.
 
