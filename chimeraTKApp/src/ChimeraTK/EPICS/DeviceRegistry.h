@@ -48,7 +48,8 @@ public:
     /**
      * Destructor. Virtual classes need virtual destructors.
      */
-    virtual ~ProcessVariableInterruptHandler();
+    virtual ~ProcessVariableInterruptHandler() {
+    }
 
     /**
      * Shared pointer to this type.
