@@ -49,29 +49,59 @@ xxx_LIBS += ChimeraTK-ControlSystemAdapter-EPICS
 to the file `xxxApp/src/Makefile`.
 
 You can then use `DTYP` "ChimeraTK" for most record types. The device addresses
-have the form "@deviceName processVariableName" where "deviceName" is the name
-of the device that has been used when registering it with the `DeviceRegistry`
-(see below) and "processVariableName" is the name of the process variable within
-the device. Please refer to the documentation of the respective device or device
-library to find out which process variables exist for a certain device.
+have the form "@applicationName processVariableName" where "applicationName" is
+the name of the application that has been used when registering it with the
+`DeviceRegistry` (see below) and "processVariableName" is the name of the
+process variable within the application. Please refer to the documentation of
+the respective application in order to find out which process variables exist
+for that application.
 
 For the waveform record, you have to use the DTYP "ChimeraTK input" or
 "ChimeraTK output", depending on the direction the record should use.
 
-The ChimeraTK Control System Adapter is designed in a way so that devices
+The ChimeraTK Control System Adapter is designed in a way so that applications
 typically notify the control-system when new data is available. For this reason,
 you should typically set the `SCAN` field of input records to `I/O Intr` because
 scanning is less efficient and might also result in events being lost.
 
-You have to initialize the respective device or device library and then register
-the device's `ControlSystemPVManager` with the
+
+Registering an application
+--------------------------
+
+There are two ways for registering an application. Most applications
+automatically create an instance of `ApplicationBase`. In this case, it is
+sufficient to link the IOC to the application library and add the following line
+to `st.cmd`:
+
+```
+chimeraTKConfigureApplication("applicationName", 100)
+```
+
+In this example, `applicationName` is the same name that is also used in the `INP`
+or `OUT` fields of records. This can be an arbitrary string, but it must not
+contain whitespace because whitespace is used to separate the application name
+from the process variable name in the input or output link. It is suggested to
+only use alphanumeric characters and the underscore to allow for possible future
+changes in the address format.
+
+The polling rate (100 microseconds in this example) defines how often the IOC
+checks whether value updates from the application are available. The default
+value of 100 µs is a good compromise between low latency and CPU utilization
+(checking once every 100 µs should not generate a significant overhead).
+
+If an application is not registered automatically (e.g. because it does not
+implement `ApplicationBase` so that more than one instance can be present in the
+same server), it can still be used with this adapter.
+
+In this case, you have to initialize the respective application or application
+library and then register the application's `ControlSystemPVManager` with the
 `ChimeraTK::EPICS::DeviceRegistry`.
 
 For example:
 
 ```
 ChimeraTK::EPICS::DeviceRegistry::registerDevice(
-    "myDevice", controlSystemPVManager);
+    "myApplication", controlSystemPVManager, 100);
 ```
 
 You can do this from the IOC's main function, but typically you will rather add

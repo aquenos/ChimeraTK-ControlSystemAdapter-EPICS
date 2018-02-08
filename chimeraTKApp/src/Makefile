@@ -19,7 +19,9 @@ INC += ChimeraTK/EPICS/DeviceRegistry.h
 
 # specify all source files to be compiled and added to the library
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += DeviceRegistry.cpp
+ChimeraTK-ControlSystemAdapter-EPICS_SRCS += errorPrint.cpp
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += recordDefinitions.cpp
+ChimeraTK-ControlSystemAdapter-EPICS_SRCS += registrar.cpp
 
 ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += boost_chrono$(BOOST_LIBNAME_SUFFIX)
 ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += boost_thread$(BOOST_LIBNAME_SUFFIX)
