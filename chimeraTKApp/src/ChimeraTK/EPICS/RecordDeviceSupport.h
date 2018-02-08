@@ -127,14 +127,16 @@ private:
         " \t");
     if (firstSeparatorIndex == std::string::npos) {
       throw std::invalid_argument(
-          "Invalid address. No separator found that separates the device name from the process-variable name.");
+          std::string("Invalid address \"") + fullString
+          + "\". No separator found that separates the device name from the process-variable name.");
     }
     std::string deviceName = fullString.substr(0, firstSeparatorIndex);
     std::string::size_type processVariableNameIndex =
         fullString.find_first_not_of(" \t", firstSeparatorIndex);
     if (processVariableNameIndex == std::string::npos) {
       throw std::invalid_argument(
-          "Invalid address. Process variable name is missing.");
+          std::string("Invalid address \"") + fullString
+          + "\". Process variable name is missing.");
     }
     std::string processVariableName = fullString.substr(
         processVariableNameIndex);
