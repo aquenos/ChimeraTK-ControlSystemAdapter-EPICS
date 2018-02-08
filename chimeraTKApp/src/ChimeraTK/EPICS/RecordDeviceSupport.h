@@ -109,10 +109,13 @@ public:
     device = DeviceRegistry::getDevice(deviceNameAndProcessVariableName.first);
     {
       boost::unique_lock<boost::recursive_mutex> lock(device->mutex);
-      processVariableSupport = device->createProcessVariableSupport(
-          deviceNameAndProcessVariableName.second);
       processVariable = device->pvManager->getProcessVariable(
           deviceNameAndProcessVariableName.second);
+      // We use processVariable->getName() so that we use the canonicalized name
+      // when create the process-variable support. Otherwise, notifications for
+      // the process variable might not be dispatched to the correct support.
+      processVariableSupport = device->createProcessVariableSupport(
+          processVariable->getName());
     }
   }
 
