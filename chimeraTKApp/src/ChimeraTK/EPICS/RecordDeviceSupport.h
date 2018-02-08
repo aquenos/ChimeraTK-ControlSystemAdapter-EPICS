@@ -399,10 +399,6 @@ struct RecordDeviceSupportScalarTrait {
    * value type that is not supported by this implementation.
    */
   void initializeDataAccess(ProcessVariable::SharedPtr processVariable) {
-    if (processVariable->isArray()) {
-      throw std::runtime_error(
-          "This record type only supports scalar process variables, however it refers to an array process variable.");
-    }
     std::type_info const & valueType = processVariable->getValueType();
     if (valueType == typeid(std::int8_t)) {
       dataAccess.reset(new ScalarDataAccessImpl<std::int8_t>(processVariable));
@@ -452,10 +448,6 @@ struct RecordDeviceSupportArrayTrait {
    */
   void initializeDataAccess(ProcessVariable::SharedPtr processVariable,
       epicsEnum16 ftvl, epicsUInt32 nelm) {
-    if (!processVariable->isArray()) {
-      throw std::runtime_error(
-          "This record type only supports array process variables, however it refers to a scalar process variable.");
-    }
     std::type_info const & valueType = processVariable->getValueType();
     if (valueType == typeid(std::int8_t)) {
       dataAccess.reset(
