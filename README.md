@@ -6,10 +6,19 @@ About
 
 The [ChimeraTK project](https://github.com/ChimeraTK/) provides an
 [adapter](https://github.com/ChimeraTK/) that allows control-systems to
-communicate with devices (typically MicroTCA / PCI Express devices) in a generic
-way. This EPICS device support interfaces to that adapter, so that it makes it
-very easy to integrate a hardware device (or rather a hardware device library)
-that is based on ChimeraTK into EPICS.
+communicate with generic applications backed by hardware devices (typically
+MicroTCA / PCI Express devices). This EPICS device support interfaces to that
+adapter, in order to make it possible to use a ChimeraTK-based application in
+EPICS.
+
+When you are looking for a simple solution for running an application based on
+[ChimeraTK's ApplicationCore](https://github.com/ChimeraTK/ApplicationCore),
+you might be interested in the
+[ChimeraTK ControlSystemAdapter EPICS-IOC Adapter](https://github.com/ChimeraTK/ControlSystemAdapter-EPICS-IOC-Adapter).
+That project is based on this device support, but relieves you from most of the
+work needed to create an EPICS IOC based on this device support.
+This device support - on the other hand - is the right choice if you want to
+create your own EPICS IOC in order to control all details.
 
 
 Installation
