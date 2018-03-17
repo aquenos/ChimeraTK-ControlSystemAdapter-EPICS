@@ -24,17 +24,25 @@ create your own EPICS IOC in order to control all details.
 Installation
 ------------
 
-Please copy `configure/EXAMPLE_CONFIG_SITE.local` to
-`configure/CONFIG_SITE.local` and `configure/EXAMPLE_RELEASE.local` to
-`configure/RELEASE.local` and adjust the paths and compiler settings in these
-files.
+Please copy `configure/EXAMPLE_RELEASE.local` to `configure/RELEASE.local` and
+adjust the path to EPICS Base.
 
-The ChimeraTK Control System Adapter for EPICS needs the Boost C++ libraries and
-the ChimeraTK Control System Adapter core library. If you compiled the
-ChimeraTK Control System Adapter core, you most likely already have all required
-Boost libraries. The ChimeraTK Control System Adapter core also needs the
-(ChimeraTK Device Access library)[https://github.com/ChimeraTK/DeviceAccess/].
-For historic reasons, this library is still called mtca4u-DeviceAccess.
+Usually, the build system automatically detects the correct compiler and linker
+flags. However, if the `ChimeraTK-ControlSystemAdapter-config` and
+`mtca4u-deviceaccess-config` scripts are not in the `PATH`, you have to specify
+the path to these scripts explicitly. In this case, please copy
+`configure/EXAMPLE_CONFIG_SITE.local` to `configure/CONFIG_SITE.local` and
+adjust the paths to these scripts.
+
+The ChimeraTK Control System Adapter for EPICS needs the Boost C++ libraries,
+the
+[ChimeraTK Control System Adapter core library](https://github.com/ChimeraTK/ControlSystemAdapter/)
+and the
+[ChimeraTK Device Access library](https://github.com/ChimeraTK/DeviceAccess/).
+If you compiled the ChimeraTK Control System Adapter core, you most likely
+already have all required Boost libraries and the ChimeraTK Device Access
+library. For historic reasons, the library provided by ChimeraTK Device Access
+is still called `mtca4u-DeviceAccess`.
 
 
 Adding the device support to an EPICS IOC
@@ -47,7 +55,7 @@ line
 CHIMERATK_EPICS=/path/to/epics/modules/chimeratk
 ```
 
-to the `configure/RELEASE` file of your IOC application. Assuming your IOC 
+to the `configure/RELEASE` file of your IOC application. Assuming your IOC
 application name is "xxx", you also have to add the two lines
 
 ```
@@ -130,7 +138,7 @@ get in touch with us.
 ---
 
 Copyright notice for the ChimeraTK Control System Adapter for EPICS:
- 
+
 Copyright 2017 aquenos GmbH
 
 The ChimeraTK Control System Adapter for EPICS is free software: you can
@@ -145,12 +153,12 @@ General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License along
 with the ChimeraTK Control System Adapter for EPICS. If not, see
 <http://www.gnu.org/licenses/>.
- 
+
 ---
 
 This software uses EPICS Base. Copyright notice for EPICS Base:
 
-Copyright (c) 1991-2007 UChicago Argonne LLC and The Regents of the University 
+Copyright (c) 1991-2007 UChicago Argonne LLC and The Regents of the University
 of California. All rights reserved.
 
 For the license of EPICS base please refer to the LICENSE file in the EPICS base

@@ -30,47 +30,30 @@ CHECK_RELEASE = YES
 #   a Microsoft FTP server say, or on some NFS configurations.
 #IOCS_APPL_TOP = </IOC's/absolute/path/to/install/top>
 
-# Suffix used for the names of the Boost libraries (e.g. "-mt").
-BOOST_LIBNAME_SUFFIX=
+# Path to the ChimeraTK-ControlSystemAdapter-config executable. By default, it
+# is expected to be in the PATH, but one can override this by setting this
+# variable to the full path to the executable.
+CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG = ChimeraTK-ControlSystemAdapter-config
+
+# Path to the mtca4u-deviceaccess-config executable. By default, it is expected
+# to be in the PATH, but one can override this by setting this variable to the
+# full path to the executable.
+CHIMERATK_DEVICE_ACCESS_CONFIG = mtca4u-deviceaccess-config
 
 # Allow user to override settings locally.
 -include $(TOP)/configure/CONFIG_SITE.local
 
-# We check for the more specific variables after including CONFIG_SITE.local.
-# This means that a user can simply override the generic variables and have
-# the more specific ones generated from this.
+# We discover the compiler and linker flags by calling the config utilities for
+# the ChimeraTK Control-System Adapter and DeviceAccess. We do not do this if
+# the user has defines CHIMERATK_SKIP_CXXFLAGS or CHIMERATK_SKIP_LDFLAGS in
+# CONFIG_SITE.local.
 
-ifdef BOOST_DIR
-  ifndef BOOST_INCLUDE
-    BOOST_INCLUDE = $(BOOST_DIR)/include
-  endif
-  ifndef BOOST_LIB
-    BOOST_LIB = $(BOOST_DIR)/lib
-  endif
+ifndef CHIMERATK_SKIP_CXXFLAGS
+  USR_CXXFLAGS += $(shell $(CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG) --cppflags)
+  USR_CXXFLAGS += $(shell $(CHIMERATK_DEVICE_ACCESS_CONFIG) --cppflags)
 endif
 
-ifdef CHIMERATK_DIR
-  ifndef CHIMERATK_INCLUDE
-    CHIMERATK_INCLUDE = $(CHIMERATK_DIR)/include
-  endif
-  ifndef CHIMERATK_LIB
-    CHIMERATK_LIB = $(CHIMERATK_DIR)/lib
-  endif
-endif
-
-# If the include or library paths are specified, we add them to the compiler /
-# linker flags.
-
-ifdef BOOST_INCLUDE
-  USR_CXXFLAGS += -I$(BOOST_INCLUDE)
-endif
-ifdef BOOST_LIB
-  USR_LDFLAGS += -L$(BOOST_LIB)
-endif
-
-ifdef CHIMERATK_INCLUDE
-  USR_CXXFLAGS += -I$(CHIMERATK_INCLUDE)
-endif
-ifdef CHIMERATK_LIB
-  USR_LDFLAGS += -L$(CHIMERATK_LIB)
+ifndef CHIMERATK_SKIP_LDFLAGS
+  USR_LDFLAGS += $(shell $(CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG) --ldflags)
+  USR_LDFLAGS += $(shell $(CHIMERATK_DEVICE_ACCESS_CONFIG) --ldflags)
 endif
