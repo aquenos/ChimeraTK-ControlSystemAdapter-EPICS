@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2018 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -17,27 +17,31 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIMERATK_EPICS_ERROR_H
-#define CHIMERATK_EPICS_ERROR_H
+#ifndef CHIMERATK_EPICS_RECORD_VALUE_FIELD_NAME_H
+#define CHIMERATK_EPICS_RECORD_VALUE_FIELD_NAME_H
 
 namespace ChimeraTK {
 namespace EPICS {
 
 /**
- * Prints an error message. Only the specified message (without any extra
- * information) is printed to stderr. A newline character is automatically
- * appended to the message.
+ * Name of the record's field that stores the value that is used by the device
+ * support.
  */
-void errorPrintf(const char *format, ...) noexcept;
+enum RecordValueFieldName {
 
-/**
- * Prints an error message with the current time and the name of the current
- * thread to stderr. A newline character is automatically appended to the
- * message.
- */
-void errorExtendedPrintf(const char *format, ...) noexcept;
+  /**
+   * The record's RVAL field is used by the device support.
+   */
+  RVAL,
+
+  /**
+   * The record's VAL field is used by the device support.
+   */
+  VAL
+
+};
 
 } // namespace EPICS
 } // namespace ChimeraTK
 
-#endif // CHIMERATK_EPICS_ERROR_H
+#endif // CHIMERATK_EPICS_RECORD_VALUE_FIELD_NAME_H

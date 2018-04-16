@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2018 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -17,27 +17,18 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIMERATK_EPICS_ERROR_H
-#define CHIMERATK_EPICS_ERROR_H
+#ifndef CHIMERATK_EPICS_CONTROL_SYSTEM_ADAPTER_SHARED_PV_SUPPORT_FWD_DECL_H
+#define CHIMERATK_EPICS_CONTROL_SYSTEM_ADAPTER_SHARED_PV_SUPPORT_FWD_DECL_H
 
 namespace ChimeraTK {
 namespace EPICS {
 
-/**
- * Prints an error message. Only the specified message (without any extra
- * information) is printed to stderr. A newline character is automatically
- * appended to the message.
- */
-void errorPrintf(const char *format, ...) noexcept;
+class ControlSystemAdapterSharedPVSupportBase;
 
-/**
- * Prints an error message with the current time and the name of the current
- * thread to stderr. A newline character is automatically appended to the
- * message.
- */
-void errorExtendedPrintf(const char *format, ...) noexcept;
+template<typename T>
+class ControlSystemAdapterSharedPVSupport;
 
 } // namespace EPICS
 } // namespace ChimeraTK
 
-#endif // CHIMERATK_EPICS_ERROR_H
+#endif // CHIMERATK_EPICS_CONTROL_SYSTEM_ADAPTER_SHARED_PV_SUPPORT_FWD_DECL_H

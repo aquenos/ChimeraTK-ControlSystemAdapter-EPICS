@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2017 aquenos GmbH
+ * Copyright 2015-2018 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -32,46 +32,9 @@ extern "C" {
 }
 
 #include "ChimeraTK/EPICS/RecordDeviceSupport.h"
+#include "ChimeraTK/EPICS/errorPrint.h"
 
 using namespace ChimeraTK::EPICS;
-
-/**
- * Prints an error message with thread and time information.
- */
-static void errorPrintf(const char *format, ...) {
-  const int bufferSize = 1024;
-  char buffer[bufferSize];
-  const char *timeString;
-  try {
-    ::epicsTime currentTime = ::epicsTime::getCurrent();
-    if (currentTime.strftime(buffer, bufferSize, "%Y/%m/%d %H:%M:%S.%06f")) {
-      timeString = buffer;
-    } else {
-      timeString = NULL;
-    }
-  } catch (...) {
-    timeString = NULL;
-  }
-  std::va_list varArgs;
-  va_start(varArgs, format);
-  bool useAnsiSequences = ::isatty(STDERR_FILENO);
-  if (useAnsiSequences) {
-    // Set format to bold, red.
-    std::fprintf(stderr, "\x1b[1;31m");
-  }
-  if (timeString) {
-    std::fprintf(stderr, "%s ", timeString);
-  }
-  std::fprintf(stderr, "%s ", ::epicsThreadGetNameSelf());
-  std::vfprintf(stderr, format, varArgs);
-  if (useAnsiSequences) {
-    // Reset format
-    std::fprintf(stderr, "\x1b[0m");
-  }
-  std::fprintf(stderr, "\n");
-  std::fflush(stderr);
-  va_end(varArgs);
-}
 
 /**
  * Template function for initializing the device support for a record.
@@ -85,8 +48,8 @@ static long initRecord(void *recordAsVoid) {
   }
   RecordType *record = static_cast<RecordType *>(recordAsVoid);
   try {
-    RecordDeviceSupport<RecordType, IsArray, DataDirection> *deviceSupport =
-        new RecordDeviceSupport<RecordType, IsArray, DataDirection>(record);
+    RecordDeviceSupport<RecordType> *deviceSupport =
+        new RecordDeviceSupport<RecordType>(record);
     record->dpvt = deviceSupport;
     return 0;
   } catch (std::exception const & e) {
@@ -107,9 +70,9 @@ static long initAoRecord(void *recordAsVoid) {
   if (status) {
     return status;
   } else {
-    aoRecord *record = static_cast<aoRecord *>(recordAsVoid);
-    RecordDeviceSupport<aoRecord, false, OUTPUT> *deviceSupport =
-        static_cast<RecordDeviceSupport<aoRecord, false, OUTPUT> *>(record->dpvt);
+    aoRecord *record = static_cast<::aoRecord *>(recordAsVoid);
+    RecordDeviceSupport<::aoRecord> *deviceSupport =
+        static_cast<RecordDeviceSupport<::aoRecord> *>(record->dpvt);
     return deviceSupport->isNoConvert() ? 2 : 0;
   }
 }
@@ -126,8 +89,8 @@ static long processRecord(void *recordAsVoid) {
   }
   RecordType *record = static_cast<RecordType *>(recordAsVoid);
   try {
-    RecordDeviceSupport<RecordType, IsArray, DataDirection> *deviceSupport =
-        static_cast<RecordDeviceSupport<RecordType, IsArray, DataDirection> *>(record->dpvt);
+    RecordDeviceSupport<RecordType> *deviceSupport =
+        static_cast<RecordDeviceSupport<RecordType> *>(record->dpvt);
     if (!deviceSupport) {
       throw std::runtime_error(
           "Pointer to device support data structure is null.");
@@ -152,8 +115,8 @@ static long processAiRecord(void *recordAsVoid) {
     return status;
   } else {
     aiRecord *record = static_cast<aiRecord *>(recordAsVoid);
-    RecordDeviceSupport<aiRecord, false, INPUT> *deviceSupport =
-        static_cast<RecordDeviceSupport<aiRecord, false, INPUT> *>(record->dpvt);
+    RecordDeviceSupport<::aiRecord> *deviceSupport =
+        static_cast<RecordDeviceSupport<::aiRecord> *>(record->dpvt);
     return deviceSupport->isNoConvert() ? 2 : 0;
   }
 }
@@ -172,8 +135,8 @@ static long getIoInt(int command, void *recordAsVoid, IOSCANPVT *iopvt) {
   }
   RecordType *record = static_cast<RecordType *>(recordAsVoid);
   try {
-    RecordDeviceSupport<RecordType, IsArray, INPUT> *deviceSupport =
-        static_cast<RecordDeviceSupport<RecordType, IsArray, INPUT> *>(record->dpvt);
+    RecordDeviceSupport<RecordType> *deviceSupport =
+        static_cast<RecordDeviceSupport<RecordType> *>(record->dpvt);
     if (!deviceSupport) {
       throw std::runtime_error(
           "Pointer to device support data structure is null.");
@@ -380,37 +343,6 @@ struct {
 } devMbboChimeraTK = { 5, NULL, NULL, initRecord<mbboRecord, false, OUTPUT>,
 NULL, processRecord<mbboRecord, false, OUTPUT> };
 epicsExportAddress(dset, devMbboChimeraTK)
-;
-
-/**
- * waveform (input) record type.
- */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN read;
-} devWaveformInChimeraTK = { 5, NULL, NULL, initRecord<waveformRecord, true,
-    INPUT>, getIoInt<waveformRecord, true>, processRecord<waveformRecord, true,
-    INPUT> };
-epicsExportAddress(dset, devWaveformInChimeraTK)
-;
-
-/**
- * waveform (output) record type.
- */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN write;
-} devWaveformOutChimeraTK = { 5, NULL, NULL, initRecord<waveformRecord, true,
-    OUTPUT>, NULL, processRecord<waveformRecord, true, OUTPUT> };
-epicsExportAddress(dset, devWaveformOutChimeraTK)
 ;
 
 } // extern "C"

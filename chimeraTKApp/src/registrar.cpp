@@ -20,7 +20,7 @@
 #include <ChimeraTK/ControlSystemAdapter/ApplicationBase.h>
 #include <ChimeraTK/ControlSystemAdapter/PVManager.h>
 
-#include "ChimeraTK/EPICS/DeviceRegistry.h"
+#include "ChimeraTK/EPICS/PVProviderRegistry.h"
 #include "ChimeraTK/EPICS/errorPrint.h"
 
 extern "C" {
@@ -66,7 +66,7 @@ extern "C" {
    * Implementation of the iocsh chimeraTKConfigureApplicationFunc function.
    * This function creates a PVManager and passes its device-part to the only
    * instance of ApplicationBase. It also registers the control-system part of
-   * the PVManager with the DeviceRegistry, using the specified name.
+   * the PVManager with the PVProviderRegistry, using the specified name.
    */
   static void iocshChimeraTKConfigureApplicationFunc(const iocshArgBuf *args) noexcept {
     char *applicationId = args[0].sval;
@@ -111,8 +111,8 @@ extern "C" {
       errorPrintf("Could not initialize the application: Unknown error.");
     }
     try {
-    DeviceRegistry::registerDevice(applicationId, pvManagers.first,
-        pollingInterval);
+    PVProviderRegistry::registerApplication(applicationId, pvManagers.first,
+      pollingInterval);
     } catch (std::exception &e) {
       errorPrintf("Could not register the application: %s", e.what());
       return;

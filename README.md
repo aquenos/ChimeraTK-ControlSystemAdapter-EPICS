@@ -68,19 +68,24 @@ to the file `xxxApp/src/Makefile`.
 You can then use `DTYP` "ChimeraTK" for most record types. The device addresses
 have the form "@applicationName processVariableName" where "applicationName" is
 the name of the application that has been used when registering it with the
-`DeviceRegistry` (see below) and "processVariableName" is the name of the
+`PVProviderRegistry` (see below) and "processVariableName" is the name of the
 process variable within the application. Please refer to the documentation of
 the respective application in order to find out which process variables exist
 for that application.
-
-For the waveform record, you have to use the DTYP "ChimeraTK input" or
-"ChimeraTK output", depending on the direction the record should use.
 
 The ChimeraTK Control System Adapter is designed in a way so that applications
 typically notify the control-system when new data is available. For this reason,
 you should typically set the `SCAN` field of input records to `I/O Intr` because
 scanning is less efficient and might also result in events being lost.
 
+**Caution:** Do not use a periodic `SCAN` mode because this will almost
+certainly not have the desired results. If the scan rate is higher than the
+update rate of the underlying process variable, using periodic scanning will
+simply result in an unnecessary overhead. When the scan rate is lower than the
+update rate, a read operation may (and typically will) return an old value
+because the ChimeraTK Control System Adapter internally uses a queue when
+transferring values from the application to the control system. As this queue
+is bounded, you also will occasionally lose values when there is an overflow.
 
 Registering an application
 --------------------------
@@ -112,7 +117,7 @@ same server), it can still be used with this adapter.
 
 In this case, you have to initialize the respective application or application
 library and then register the application's `ControlSystemPVManager` with the
-`ChimeraTK::EPICS::DeviceRegistry`.
+`ChimeraTK::EPICS::PVProviderRegistry`.
 
 For example:
 

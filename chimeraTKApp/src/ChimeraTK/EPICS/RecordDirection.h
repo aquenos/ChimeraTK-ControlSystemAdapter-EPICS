@@ -17,27 +17,30 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIMERATK_EPICS_ERROR_H
-#define CHIMERATK_EPICS_ERROR_H
+#ifndef CHIMERATK_EPICS_RECORD_DIRECTION_H
+#define CHIMERATK_EPICS_RECORD_DIRECTION_H
 
 namespace ChimeraTK {
 namespace EPICS {
 
 /**
- * Prints an error message. Only the specified message (without any extra
- * information) is printed to stderr. A newline character is automatically
- * appended to the message.
+ * Data direction of a record.
  */
-void errorPrintf(const char *format, ...) noexcept;
+enum class RecordDirection {
 
-/**
- * Prints an error message with the current time and the name of the current
- * thread to stderr. A newline character is automatically appended to the
- * message.
- */
-void errorExtendedPrintf(const char *format, ...) noexcept;
+  /**
+   * Record is an input record. This means that it reads data from the device.
+   */
+  INPUT,
+
+  /**
+   * Record is an output record. This means that is writes data to the device.
+   */
+  OUTPUT
+
+};
 
 } // namespace EPICS
 } // namespace ChimeraTK
 
-#endif // CHIMERATK_EPICS_ERROR_H
+#endif // CHIMERATK_EPICS_RECORD_DIRECTION_H
