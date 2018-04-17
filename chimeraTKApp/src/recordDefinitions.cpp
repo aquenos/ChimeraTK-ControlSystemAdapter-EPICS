@@ -36,11 +36,47 @@ extern "C" {
 
 using namespace ChimeraTK::EPICS;
 
+namespace {
+
+/**
+ * Returns the status code that initRecord should return on success. Normally,
+ * this is 0, but it may be two for records that support disabling conversion
+ * from RVAL to VAL.
+ */
+template<typename RecordType>
+inline long getInitSuccessStatusCode(RecordType *record) {
+  return 0;
+}
+
+template<>
+inline long getInitSuccessStatusCode<::aoRecord>(::aoRecord *record) {
+  RecordDeviceSupport<::aoRecord> *deviceSupport =
+      static_cast<RecordDeviceSupport<::aoRecord> *>(record->dpvt);
+  return deviceSupport->isNoConvert() ? 2 : 0;
+}
+
+/**
+ * Returns the status code that processRecord should return on success.
+ * Normally, this is 0, but it may be two for records that support disabling
+ * conversion from RVAL to VAL.
+ */
+template<typename RecordType>
+inline long getProcessSuccessStatusCode(RecordType *record) {
+  return 0;
+}
+
+template<>
+inline long getProcessSuccessStatusCode<::aiRecord>(aiRecord *record) {
+  RecordDeviceSupport<::aiRecord> *deviceSupport =
+      static_cast<RecordDeviceSupport<::aiRecord> *>(record->dpvt);
+  return deviceSupport->isNoConvert() ? 2 : 0;
+}
+
 /**
  * Template function for initializing the device support for a record.
  */
-template<typename RecordType, bool IsArray, Direction DataDirection>
-static long initRecord(void *recordAsVoid) {
+template<typename RecordType>
+long initRecord(void *recordAsVoid) {
   if (!recordAsVoid) {
     errorPrintf(
         "Record initialization failed: Pointer to record structure is null.");
@@ -51,7 +87,6 @@ static long initRecord(void *recordAsVoid) {
     RecordDeviceSupport<RecordType> *deviceSupport =
         new RecordDeviceSupport<RecordType>(record);
     record->dpvt = deviceSupport;
-    return 0;
   } catch (std::exception const & e) {
     errorPrintf("%s Record initialization failed: %s", record->name, e.what());
     return -1;
@@ -60,28 +95,14 @@ static long initRecord(void *recordAsVoid) {
         record->name);
     return -1;
   }
-}
-
-/**
- * Initialization function for the device support for the ao record.
- */
-static long initAoRecord(void *recordAsVoid) {
-  long status = initRecord<aoRecord, false, OUTPUT>(recordAsVoid);
-  if (status) {
-    return status;
-  } else {
-    aoRecord *record = static_cast<::aoRecord *>(recordAsVoid);
-    RecordDeviceSupport<::aoRecord> *deviceSupport =
-        static_cast<RecordDeviceSupport<::aoRecord> *>(record->dpvt);
-    return deviceSupport->isNoConvert() ? 2 : 0;
-  }
+  return getInitSuccessStatusCode<RecordType>(record);
 }
 
 /**
  * Template function for processing (reading or writing) a record.
  */
-template<typename RecordType, bool IsArray, Direction DataDirection>
-static long processRecord(void *recordAsVoid) {
+template<typename RecordType>
+long processRecord(void *recordAsVoid) {
   if (!recordAsVoid) {
     errorPrintf(
         "Record processing failed: Pointer to record structure is null.");
@@ -103,22 +124,7 @@ static long processRecord(void *recordAsVoid) {
     errorPrintf("%s Record processing failed: Unknown error.", record->name);
     return -1;
   }
-  return 0;
-}
-
-/**
- * Updates the value of an ai record by reading from the corresponding device.
- */
-static long processAiRecord(void *recordAsVoid) {
-  long status = processRecord<aiRecord, false, INPUT>(recordAsVoid);
-  if (status) {
-    return status;
-  } else {
-    aiRecord *record = static_cast<aiRecord *>(recordAsVoid);
-    RecordDeviceSupport<::aiRecord> *deviceSupport =
-        static_cast<RecordDeviceSupport<::aiRecord> *>(record->dpvt);
-    return deviceSupport->isNoConvert() ? 2 : 0;
-  }
+  return getProcessSuccessStatusCode<RecordType>(record);
 }
 
 /**
@@ -126,8 +132,8 @@ static long processAiRecord(void *recordAsVoid) {
  * a record is switch to or from the I/O Intr scan mode. It is responsible for
  * registering or clearing the interrupt handler.
  */
-template<typename RecordType, bool IsArray>
-static long getIoInt(int command, void *recordAsVoid, IOSCANPVT *iopvt) {
+template<typename RecordType>
+long getIoInt(int command, void *recordAsVoid, IOSCANPVT *iopvt) {
   if (!recordAsVoid) {
     errorPrintf(
         "Record processing failed: Pointer to record structure is null.");
@@ -152,63 +158,53 @@ static long getIoInt(int command, void *recordAsVoid, IOSCANPVT *iopvt) {
   return 0;
 }
 
-extern "C" {
-
 /**
  * Type alias for the get_ioint_info functions. These functions have a slightly
  * different signature than the other functions, even though the definition in
  * the structures in the record header files might indicate something else.
  */
-typedef long (*DEVSUPFUN_GET_IOINT_INFO)(int, void *, IOSCANPVT *);
+typedef long (*DEVSUPFUN_GET_IOINT_INFO)(int, ::dbCommon *, ::IOSCANPVT *);
+
+/**
+ * Device support structure as expected by most record types. The notable
+ * exceptions are the ai and ao records, where the device support structure
+ * has an additional field.
+ */
+typedef struct {
+  long numberOfFunctionPointers;
+  DEVSUPFUN report;
+  DEVSUPFUN init;
+  DEVSUPFUN init_record;
+  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
+  DEVSUPFUN process;
+} DeviceSupportStruct;
+
+template<typename RecordType>
+constexpr DeviceSupportStruct deviceSupportStruct() {
+  return {5, nullptr, nullptr, initRecord<RecordType>, nullptr,
+      processRecord<RecordType>};
+}
+
+} // anonymous namespace
+
+extern "C" {
 
 /**
  * aai record type.
  */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN read;
-} devAaiChimeraTK = { 5, NULL, NULL, initRecord<aaiRecord, true, INPUT>,
-    getIoInt<aaiRecord, true>, processRecord<aaiRecord, true, INPUT> };
-epicsExportAddress(dset, devAaiChimeraTK)
-;
+auto devAaiChimeraTK = deviceSupportStruct<::aaiRecord>();
+epicsExportAddress(dset, devAaiChimeraTK);
 
 /**
  * aao record type.
  */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN write;
-} devAaoChimeraTK = { 5, NULL, NULL, initRecord<aaoRecord, true, OUTPUT>, NULL,
-    processRecord<aaoRecord, true, OUTPUT> };
-epicsExportAddress(dset, devAaoChimeraTK)
-;
+auto devAaoChimeraTK = deviceSupportStruct<::aaoRecord>();
+epicsExportAddress(dset, devAaoChimeraTK);
 
 /**
- * ai record type.
- */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN read;
-  DEVSUPFUN special_linconv;
-} devAiChimeraTK = { 6, NULL, NULL, initRecord<aiRecord, false, INPUT>,
-    getIoInt<aiRecord, false>, processAiRecord, NULL };
-epicsExportAddress(dset, devAiChimeraTK)
-;
-
-/**
- * ao record type.
+ * ao record type.  This record type expects an additional field
+ * (special_linconv) in the device support structure, so we cannot use the usual
+ * template function.
  */
 struct {
   long numberOfFunctionPointers;
@@ -218,131 +214,56 @@ struct {
   DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
   DEVSUPFUN write;
   DEVSUPFUN special_linconv;
-} devAoChimeraTK = { 6, NULL, NULL, initAoRecord,
-NULL, processRecord<aoRecord, false, OUTPUT>, nullptr };
-epicsExportAddress(dset, devAoChimeraTK)
-;
+} devAoChimeraTK = {6, nullptr, nullptr, initRecord<::aoRecord>, nullptr,
+    processRecord<::aoRecord>, nullptr};
+epicsExportAddress(dset, devAoChimeraTK);
 
 /**
  * bi record type.
  */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN read;
-} devBiChimeraTK = { 5, NULL, NULL, initRecord<biRecord, false, INPUT>,
-    getIoInt<biRecord, false>, processRecord<biRecord, false, INPUT> };
-epicsExportAddress(dset, devBiChimeraTK)
-;
+auto devBiChimeraTK = deviceSupportStruct<::biRecord>();
+epicsExportAddress(dset, devBiChimeraTK);
 
 /**
  * bo record type.
  */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN write;
-} devBoChimeraTK = { 5, NULL, NULL, initRecord<boRecord, false, OUTPUT>,
-NULL, processRecord<boRecord, false, OUTPUT> };
-epicsExportAddress(dset, devBoChimeraTK)
-;
+auto devBoChimeraTK = deviceSupportStruct<::boRecord>();
+epicsExportAddress(dset, devBoChimeraTK);
 
 /**
  * longin record type.
  */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN read;
-} devLonginChimeraTK = { 5, NULL, NULL, initRecord<longinRecord, false, INPUT>,
-    getIoInt<longinRecord, false>, processRecord<longinRecord, false, INPUT> };
-epicsExportAddress(dset, devLonginChimeraTK)
-;
+auto devLonginChimeraTK = deviceSupportStruct<::longinRecord>();
+epicsExportAddress(dset, devLonginChimeraTK);
 
 /**
  * longout record type.
  */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN write;
-} devLongoutChimeraTK = { 5, NULL, NULL,
-    initRecord<longoutRecord, false, OUTPUT>,
-    NULL, processRecord<longoutRecord, false, OUTPUT> };
-epicsExportAddress(dset, devLongoutChimeraTK)
-;
-
-/**
- * mbbiDirect record type.
- */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN read;
-} devMbbiDirectChimeraTK = { 5, NULL, NULL, initRecord<mbbiDirectRecord, false,
-    INPUT>, getIoInt<mbbiDirectRecord, false>, processRecord<mbbiDirectRecord,
-    false, INPUT> };
-epicsExportAddress(dset, devMbbiDirectChimeraTK)
-;
-
-/**
- * mbboDirect record type.
- */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN write;
-} devMbboDirectChimeraTK = { 5, NULL, NULL, initRecord<mbboDirectRecord, false,
-    OUTPUT>, NULL, processRecord<mbboDirectRecord, false, OUTPUT> };
-epicsExportAddress(dset, devMbboDirectChimeraTK)
-;
+auto devLongoutChimeraTK = deviceSupportStruct<::longoutRecord>();
+epicsExportAddress(dset, devLongoutChimeraTK);
 
 /**
  * mbbi record type.
  */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN read;
-} devMbbiChimeraTK = { 5, NULL, NULL, initRecord<mbbiRecord, false, INPUT>,
-    getIoInt<mbbiRecord, false>, processRecord<mbbiRecord, false, INPUT> };
-epicsExportAddress(dset, devMbbiChimeraTK)
-;
+auto devMbbiChimeraTK = deviceSupportStruct<::mbbiRecord>();
+epicsExportAddress(dset, devMbbiChimeraTK);
+
+/**
+ * mbbiDirect record type.
+ */
+auto devMbbiDirectChimeraTK = deviceSupportStruct<::mbbiDirectRecord>();
+epicsExportAddress(dset, devMbbiDirectChimeraTK);
 
 /**
  * mbbo record type.
  */
-struct {
-  long numberOfFunctionPointers;
-  DEVSUPFUN report;
-  DEVSUPFUN init;
-  DEVSUPFUN init_record;
-  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
-  DEVSUPFUN write;
-} devMbboChimeraTK = { 5, NULL, NULL, initRecord<mbboRecord, false, OUTPUT>,
-NULL, processRecord<mbboRecord, false, OUTPUT> };
-epicsExportAddress(dset, devMbboChimeraTK)
-;
+auto devMbboChimeraTK = deviceSupportStruct<::mbboRecord>();
+epicsExportAddress(dset, devMbboChimeraTK);
+
+/**
+ * mbboDirect record type.
+ */
+auto devMbboDirectChimeraTK = deviceSupportStruct<::mbboDirectRecord>();
+epicsExportAddress(dset, devMbboDirectChimeraTK);
 
 } // extern "C"
