@@ -1,6 +1,7 @@
 .cproject
 .project
 .settings
+.vscode
 bin
 configure/CONFIG_SITE.local
 configure/O.*
