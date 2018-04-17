@@ -259,7 +259,7 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
   return std::bind(
     [value, timeStamp, versionNumber](
         std::forward_list<NotifyCallback> callbacks){
-      for (auto callback : callbacks) {
+      for (auto &callback : callbacks) {
         try {
           callback(value, timeStamp, versionNumber);
           return;

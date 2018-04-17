@@ -203,7 +203,7 @@ void ControlSystemAdapterPVProvider::runPollingThread() {
     // After releasing the lock, we call the notify functions. It is important
     // that we do not do this while holding the lock because we would risk a
     // deadlock.
-    for (auto notifyFunction : notifyFunctions) {
+    for (auto &notifyFunction : notifyFunctions) {
       notifyFunction();
     }
   }
