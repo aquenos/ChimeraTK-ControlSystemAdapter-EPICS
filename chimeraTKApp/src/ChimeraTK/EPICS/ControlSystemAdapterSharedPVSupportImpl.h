@@ -250,15 +250,12 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
       --this->notificationPendingCount;
     }
   }
-  // The std::bind is necessary in order to move the list of callbacks instead
-  // of copying it. Explicitly moving into the lambda expression is only
-  // possible in C++ 14.
   auto &value = this->lastValueRead;
   auto &timeStamp = this->lastTimeStampRead;
   auto &versionNumber = this->lastVersionNumberRead;
-  return std::bind(
-    [value, timeStamp, versionNumber](
-        std::forward_list<NotifyCallback> callbacks){
+  // We would rather move the callbacks into the lambda expression, but this is
+  // only possible in C++ 14.
+  return [value, timeStamp, versionNumber, callbacks](){
       for (auto &callback : callbacks) {
         try {
           callback(value, timeStamp, versionNumber);
@@ -272,7 +269,7 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
             "A notification callback threw an exception. This indicates a bug in the record device support code.");
         }
       }
-    }, std::move(callbacks));
+    };
 }
 
 template<typename T>
