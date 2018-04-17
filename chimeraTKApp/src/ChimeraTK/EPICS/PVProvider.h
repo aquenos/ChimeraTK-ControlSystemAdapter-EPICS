@@ -84,7 +84,7 @@ protected:
    * specified element type. If it cannot return the pointer to such an object,
    * it throws an exception.
    */
-  virtual std::shared_ptr<PVSupportBase> createPVSupport(
+  virtual PVSupportBase::SharedPtr createPVSupport(
       std::string const &processVariableName,
       std::type_info const& elementType) = 0;
 

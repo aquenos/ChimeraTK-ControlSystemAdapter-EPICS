@@ -61,7 +61,7 @@ ControlSystemAdapterPVProvider::~ControlSystemAdapterPVProvider() {
   this->pollingThread.join();
 }
 
-std::shared_ptr<PVSupportBase> ControlSystemAdapterPVProvider::createPVSupport(
+PVSupportBase::SharedPtr ControlSystemAdapterPVProvider::createPVSupport(
     std::string const &processVariableName,
     std::type_info const& elementType) {
   try {
@@ -76,7 +76,7 @@ std::shared_ptr<PVSupportBase> ControlSystemAdapterPVProvider::createPVSupport(
 }
 
 template<typename T>
-std::shared_ptr<PVSupportBase> ControlSystemAdapterPVProvider::createPVSupportInternal(
+PVSupportBase::SharedPtr ControlSystemAdapterPVProvider::createPVSupportInternal(
     std::string const &processVariableName) {
   // We normalize the PV name so that names that look different but actually
   // represent the same PV get resolved to the same shared PV support instance.

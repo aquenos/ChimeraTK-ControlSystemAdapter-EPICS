@@ -76,7 +76,7 @@ public:
 protected:
 
   // Declared in PVProvider.
-  virtual std::shared_ptr<PVSupportBase> createPVSupport(
+  virtual PVSupportBase::SharedPtr createPVSupport(
       std::string const &processVariableName,
       std::type_info const& elementType) override;
 
@@ -162,7 +162,7 @@ private:
    * the specified name exists.
    */
   template<typename T>
-  std::shared_ptr<PVSupportBase> createPVSupportInternal(
+  PVSupportBase::SharedPtr createPVSupportInternal(
       std::string const &processVariableName);
 
   /**
