@@ -20,6 +20,7 @@
 #ifndef CHIMERATK_EPICS_ARRAY_RECORD_DEVICE_SUPPORT_H
 #define CHIMERATK_EPICS_ARRAY_RECORD_DEVICE_SUPPORT_H
 
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <sstream>
@@ -343,7 +344,10 @@ private:
             << " was expected.";
         throw std::runtime_error(oss.str());
       }
-      std::memcpy(this->record->bptr, value->data(), this->record->nelm);
+      std::memcpy(
+        this->record->bptr,
+        value->data(),
+        this->record->nelm * sizeof(T));
       this->record->nord = this->record->nelm;
       this->updateTimeStamp(this->readTimeStamp);
       return;
@@ -371,7 +375,9 @@ private:
             << " was expected.";
         throw std::runtime_error(oss.str());
       }
-      std::memcpy(this->record->bptr, value->data(), this->record->nelm);
+      std::memcpy(this->record->bptr,
+        value->data(),
+        this->record->nelm * sizeof(T));
       this->record->nord = this->record->nelm;
       this->updateTimeStamp(this->notifyTimeStamp);
       pvSupport->notifyFinished();
@@ -480,7 +486,16 @@ private:
             << " was expected.";
         throw std::runtime_error(oss.str());
       }
-      std::memcpy(this->record->bptr, value.data(), this->record->nelm);
+      // When we initialize the value, we also have to allocate the memory. The
+      // record support routine only allocates the memory after initializing the
+      // device support, but it will gladly use the memory allocated by us.
+      if (!this->record->bptr) {
+        this->record->bptr = new T[this->record->nelm];
+      }
+      std::memcpy(
+        this->record->bptr,
+        value.data(),
+        this->record->nelm * sizeof(T));
       this->record->nord = this->record->nelm;
       // Reset the UDF flag because we now have a valid value.
       this->record->udf = 0;
@@ -512,7 +527,10 @@ private:
 
     // Otherwise, this method is called because a value should be written.
     std::vector<T> value(this->record->nelm);
-    std::memcpy(value.data(), this->record->bptr, this->record->nelm);
+    std::memcpy(
+      value.data(),
+      this->record->bptr,
+      this->record->nelm * sizeof(T));
     // We can safely pass this to the callback because a record device support
     // is never destroyed once successfully constructed.
     auto pvSupport = this->template getPVSupport<T>();
