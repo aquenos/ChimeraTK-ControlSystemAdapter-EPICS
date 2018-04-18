@@ -38,6 +38,7 @@ void Timer::Impl::runThread() {
         this->tasksCv.wait_until(lock, this->tasks.top().time);
       }
       nextTask = this->tasks.top().func;
+      this->tasks.pop();
     }
     nextTask();
   }
