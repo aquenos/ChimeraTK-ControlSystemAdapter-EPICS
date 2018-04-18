@@ -36,6 +36,7 @@ extern "C" {
 #include "RecordDeviceSupportBase.h"
 #include "RecordDirection.h"
 #include "RecordValueFieldName.h"
+#include "ensureScanIoRequest.h"
 
 namespace ChimeraTK {
 namespace EPICS {
@@ -297,11 +298,11 @@ private:
           }
           this->notifyValue = static_cast<RecordValueType>((*value)[0]);
           this->notifyTimeStamp = timeStamp;
-          ::scanIoRequest(this->ioIntrModeScanPvt);
+          ensureScanIoRequest(this->ioIntrModeScanPvt);
         },
         [this](std::exception_ptr const& error){
           this->notifyException = error;
-          ::scanIoRequest(this->ioIntrModeScanPvt);
+          ensureScanIoRequest(this->ioIntrModeScanPvt);
         });
       this->ioIntrModeEnabled = true;
     } else {

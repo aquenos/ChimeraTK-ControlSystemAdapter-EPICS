@@ -18,6 +18,7 @@ DBD += ChimeraTK-ControlSystemAdapter-EPICS.dbd
 # specify all source files to be compiled and added to the library
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += ControlSystemAdapterPVProvider.cpp
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += PVProviderRegistry.cpp
+ChimeraTK-ControlSystemAdapter-EPICS_SRCS += Timer.cpp
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += RecordAddress.cpp
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += errorPrint.cpp
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += recordDefinitions.cpp
