@@ -279,6 +279,10 @@ private:
     // A command value of 0 means enable I/O Intr mode, a value of 0 means
     // disable.
     if (command == 0) {
+      if (!pvSupport->canNotify()) {
+        throw std::runtime_error(
+          "I/O Intr mode is not supported for this record.");
+      }
       // We can safely pass this to the callback because a record device support
       // is never destroyed once successfully constructed.
       pvSupport->notify(
