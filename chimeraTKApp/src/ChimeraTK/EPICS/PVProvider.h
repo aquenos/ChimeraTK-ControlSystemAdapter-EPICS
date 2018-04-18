@@ -35,6 +35,9 @@ namespace EPICS {
  * ControlSystemAdapterPVProvider (which is backed by a ControlSystemPVManager
  * from the ChimeraTK Control System Adapter) and the DeviceAccessPVProvider
  * (which is backed by a Device from ChimeraTK Device Access).
+ *
+ * Instances of this class are safe for concurrent use by multiple threads, but
+ * the PVSupport instances returned by createPVSupport(...) are not.
  */
 class PVProvider {
 

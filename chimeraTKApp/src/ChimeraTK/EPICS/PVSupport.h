@@ -96,6 +96,11 @@ protected:
  * ControlSystemAdapterPVSupport (which is backed by a ProcessArray from the
  * ChimeraTK Control System Adapter) and the DeviceAccessPVSupport (which is
  * backed by a OneDRegisterAccessor from ChimeraTK Device Access).
+ *
+ * Each PVSupport instance is not thread safe, but different PVSupport instances
+ * are, even if they internally refer to the same process variable. This means
+ * that code that wants to access a PVSupport from multiple threads should
+ * instead create a separate instance for each thread.
  */
 template<typename T>
 class PVSupport : public PVSupportBase {
