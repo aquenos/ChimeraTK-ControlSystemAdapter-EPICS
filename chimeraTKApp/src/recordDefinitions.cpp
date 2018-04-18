@@ -73,6 +73,37 @@ inline long getProcessSuccessStatusCode<::aiRecord>(aiRecord *record) {
 }
 
 /**
+ * Template function for the I/O interrupt action. This function is called when
+ * a record is switch to or from the I/O Intr scan mode. It is responsible for
+ * registering or clearing the interrupt handler.
+ */
+template<typename RecordType>
+long getInterruptInfo(int command, void *recordAsVoid, IOSCANPVT *iopvt) {
+  if (!recordAsVoid) {
+    errorPrintf(
+        "Record processing failed: Pointer to record structure is null.");
+    return -1;
+  }
+  RecordType *record = static_cast<RecordType *>(recordAsVoid);
+  try {
+    RecordDeviceSupport<RecordType> *deviceSupport =
+        static_cast<RecordDeviceSupport<RecordType> *>(record->dpvt);
+    if (!deviceSupport) {
+      throw std::runtime_error(
+          "Pointer to device support data structure is null.");
+    }
+    deviceSupport->getInterruptInfo(command, iopvt);
+  } catch (std::exception const & e) {
+    errorPrintf("%s Record processing failed: %s", record->name, e.what());
+    return -1;
+  } catch (...) {
+    errorPrintf("%s Record processing failed: Unknown error.", record->name);
+    return -1;
+  }
+  return 0;
+}
+
+/**
  * Template function for initializing the device support for a record.
  */
 template<typename RecordType>
@@ -128,42 +159,38 @@ long processRecord(void *recordAsVoid) {
 }
 
 /**
- * Template function for the I/O interrupt action. This function is called when
- * a record is switch to or from the I/O Intr scan mode. It is responsible for
- * registering or clearing the interrupt handler.
- */
-template<typename RecordType>
-long getIoInt(int command, void *recordAsVoid, IOSCANPVT *iopvt) {
-  if (!recordAsVoid) {
-    errorPrintf(
-        "Record processing failed: Pointer to record structure is null.");
-    return -1;
-  }
-  RecordType *record = static_cast<RecordType *>(recordAsVoid);
-  try {
-    RecordDeviceSupport<RecordType> *deviceSupport =
-        static_cast<RecordDeviceSupport<RecordType> *>(record->dpvt);
-    if (!deviceSupport) {
-      throw std::runtime_error(
-          "Pointer to device support data structure is null.");
-    }
-    deviceSupport->getInterruptInfo(command, iopvt);
-  } catch (std::exception const & e) {
-    errorPrintf("%s Record processing failed: %s", record->name, e.what());
-    return -1;
-  } catch (...) {
-    errorPrintf("%s Record processing failed: Unknown error.", record->name);
-    return -1;
-  }
-  return 0;
-}
-
-/**
  * Type alias for the get_ioint_info functions. These functions have a slightly
  * different signature than the other functions, even though the definition in
  * the structures in the record header files might indicate something else.
  */
-typedef long (*DEVSUPFUN_GET_IOINT_INFO)(int, ::dbCommon *, ::IOSCANPVT *);
+typedef long (*DEVSUPFUN_GET_IOINT_INFO)(int, void *, ::IOSCANPVT *);
+
+/**
+ * Helper template structure for getting a pointer to the getInterruptInfo
+ * function. This function can only be compiled for certain records (those for
+ * which the device support class has a getInterruptInfo method), so we have to
+ * use a null pointer for all other records.
+ *
+ * We use a struct with a method instead of a function template to work around
+ * the fact that function template partial specializations are not allowed.
+ */
+template<typename RecordType, bool = RecordDeviceSupportTraits<RecordType>::hasGetInterruptInfo>
+struct GetInterruptInfoFunc {
+
+  constexpr DEVSUPFUN_GET_IOINT_INFO operator()() const {
+    return nullptr;
+  }
+
+};
+
+template<typename RecordType>
+struct GetInterruptInfoFunc<RecordType, true> {
+
+  constexpr DEVSUPFUN_GET_IOINT_INFO operator()() const {
+    return getInterruptInfo<RecordType>;
+  }
+
+};
 
 /**
  * Device support structure as expected by most record types. The notable
@@ -181,8 +208,8 @@ typedef struct {
 
 template<typename RecordType>
 constexpr DeviceSupportStruct deviceSupportStruct() {
-  return {5, nullptr, nullptr, initRecord<RecordType>, nullptr,
-      processRecord<RecordType>};
+  return {5, nullptr, nullptr, initRecord<RecordType>,
+      GetInterruptInfoFunc<RecordType>()(), processRecord<RecordType>};
 }
 
 } // anonymous namespace
@@ -200,6 +227,23 @@ epicsExportAddress(dset, devAaiChimeraTK);
  */
 auto devAaoChimeraTK = deviceSupportStruct<::aaoRecord>();
 epicsExportAddress(dset, devAaoChimeraTK);
+
+/**
+ * ai record type.  This record type expects an additional field
+ * (special_linconv) in the device support structure, so we cannot use the usual
+ * template function.
+ */
+struct {
+  long numberOfFunctionPointers;
+  DEVSUPFUN report;
+  DEVSUPFUN init;
+  DEVSUPFUN init_record;
+  DEVSUPFUN_GET_IOINT_INFO get_ioint_info;
+  DEVSUPFUN read;
+  DEVSUPFUN special_linconv;
+} devAiChimeraTK = {6, nullptr, nullptr, initRecord<::aiRecord>,
+    getInterruptInfo<::aiRecord>, processRecord<::aiRecord>, nullptr};
+epicsExportAddress(dset, devAiChimeraTK);
 
 /**
  * ao record type.  This record type expects an additional field
