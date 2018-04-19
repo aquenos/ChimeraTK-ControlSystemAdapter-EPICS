@@ -47,24 +47,50 @@ public:
   static PVProvider::SharedPtr getPVProvider(std::string const & name);
 
   /**
-   * Registers a ChimeraTK ControlSystemAdapter application. This method has to
-   * be called for each application that shall be used with this device support.
-   * The application name is an arbitrary name (that may not contain whitespace)
-   * that is used to identify the application.
+   * Registers a ChimeraTK Control System Adapter application. This method has
+   * to be called for each application that shall be used with this device
+   * support. The application name is an arbitrary name (that may not contain
+   * whitespace) that is used to identify the application.
 
    * The PV manager must be a reference to the control-system PV manager for the
-   * application. The optional polling interval (default value 100) specifies the
-   * number of microseconds that the polling thread sleeps, when no notifications
-   * about new values are pending.
+   * application. The optional polling interval (default value 100) specifies
+   * the number of microseconds that the polling thread sleeps, when no
+   * notifications about new values are pending.
    *
    * The application name must be unique and must be different from any other
-   * application name or name identifying a ChimeraTK Device Access device that
-   * has been registered with this registry.
+   * application name or device name that has been registered with this
+   * registry.
    */
   static void registerApplication(
-      std::string const & appName,
+      std::string const &appName,
       ControlSystemPVManager::SharedPtr pvManager,
       int pollingIntervalInMicroSeconds = 100);
+
+  /**
+   * Registers a ChimeraTK Device Access device. This method has to be called
+   * for each device that shall be used with this device support.
+   *
+   * The first parameter is the device name, which is an arbitrary name (that
+   * may not contain whitespace) that is used to identify the device.
+
+   * The second parameter is the alias of the device used by ChimeraTK Device
+   * Access. Typically, this alias is defined in a .dmap file.
+   *
+   * The third parameter is the number of I/O threads. The PV provider
+   * internally creates a fixed-size pool of threads that are used to for
+   * performing I/O operations (that might potentially block). If the number of
+   * threads is zero, the PVProvider operates in synchronous mode. This means
+   * that all I/O operations will be performed in the thread that starts them,
+   * possibly blocking this thread.
+   *
+   * The device name must be unique and must be different from any other
+   * application name or device name that has been registered with this
+   * registry.
+   */
+  static void registerDevice(
+      std::string const &devName,
+      std::string const &deviceNameAlias,
+      std::size_t numberOfIoThreads);
 
 private:
 

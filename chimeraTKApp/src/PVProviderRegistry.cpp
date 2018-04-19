@@ -20,6 +20,7 @@
 #include <stdexcept>
 
 #include "ChimeraTK/EPICS/ControlSystemAdapterPVProvider.h"
+#include "ChimeraTK/EPICS/DeviceAccessPVProvider.h"
 
 #include "ChimeraTK/EPICS/PVProviderRegistry.h"
 
@@ -39,7 +40,7 @@ PVProvider::SharedPtr PVProviderRegistry::getPVProvider(
 }
 
 void PVProviderRegistry::registerApplication(
-      std::string const & appName,
+      std::string const &appName,
       ControlSystemPVManager::SharedPtr pvManager,
       int pollingIntervalInMicroSeconds) {
   std::lock_guard<std::recursive_mutex> lock(PVProviderRegistry::mutex);
@@ -51,6 +52,21 @@ void PVProviderRegistry::registerApplication(
   auto pvProvider = std::make_shared<ControlSystemAdapterPVProvider>(
     pvManager, std::chrono::microseconds(pollingIntervalInMicroSeconds));
   PVProviderRegistry::pvProviders.insert(std::make_pair(appName, pvProvider));
+}
+
+void PVProviderRegistry::registerDevice(
+      std::string const &devName,
+      std::string const &deviceNameAlias,
+      std::size_t numberOfIoThreads) {
+  std::lock_guard<std::recursive_mutex> lock(PVProviderRegistry::mutex);
+  if (PVProviderRegistry::pvProviders.find(devName)
+      != PVProviderRegistry::pvProviders.end()) {
+    throw std::invalid_argument(
+      std::string("The name '") + devName + "' is already in use.");
+  }
+  auto pvProvider = std::make_shared<DeviceAccessPVProvider>(
+    deviceNameAlias, numberOfIoThreads);
+  PVProviderRegistry::pvProviders.insert(std::make_pair(devName, pvProvider));
 }
 
 // Static member variables need an instance...

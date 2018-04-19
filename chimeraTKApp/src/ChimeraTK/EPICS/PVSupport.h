@@ -101,6 +101,12 @@ protected:
  * are, even if they internally refer to the same process variable. This means
  * that code that wants to access a PVSupport from multiple threads should
  * instead create a separate instance for each thread.
+ *
+ * Special care must be taken when calling the read(...) and write(...) methods:
+ * When either of these methods signals that it will finish asynchronously,
+ * neither of them must be called until the previous call has finished
+ * asynchronously. Calling either of these method any earlier results in
+ * undefined behavior.
  */
 template<typename T>
 class PVSupport : public PVSupportBase {
@@ -247,6 +253,11 @@ public:
    * callback is going to be notified asynchronously, this method returns false.
    *
    * This method throws an exception if canRead() returns false.
+   *
+   * When this method returns false, special care must be taken: As this means
+   * that this method will will finish asynchronously, neither read nor write
+   * must be called until the previous call has finished asynchronously. Calling
+   * either of these method any earlier results in undefined behavior.
    */
   virtual bool read(
       ReadCallback const &successCallback,
@@ -264,6 +275,11 @@ public:
    * callback is going to be notified asynchronously, this method returns false.
    *
    * This method throws an exception if canWrite() returns false.
+   *
+   * When this method returns false, special care must be taken: As this means
+   * that this method will will finish asynchronously, neither read nor write
+   * must be called until the previous call has finished asynchronously. Calling
+   * either of these method any earlier results in undefined behavior.
    */
   virtual bool write(
       Value const &value,
@@ -282,6 +298,11 @@ public:
    * callback is going to be notified asynchronously, this method returns false.
    *
    * This method throws an exception if canWrite() returns false.
+   *
+   * When this method returns false, special care must be taken: As this means
+   * that this method will will finish asynchronously, neither read nor write
+   * must be called until the previous call has finished asynchronously. Calling
+   * either of these method any earlier results in undefined behavior.
    */
   virtual bool write(
       Value &&value,
