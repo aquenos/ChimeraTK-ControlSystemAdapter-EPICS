@@ -67,13 +67,13 @@ public:
       : pvProvider->getDefaultType(address.getProcessVariableName()));
     this->noConvert = valueType == typeid(float) || valueType == typeid(double);
     if (this->isNoConvert()) {
-      this->valDeviceSupport.reset(
-        new FixedScalarRecordDeviceSupport<RecordType, Direction, RecordValueFieldName::VAL>(
-          record));
+      this->valDeviceSupport =
+        std::make_unique<FixedScalarRecordDeviceSupport<RecordType, Direction, RecordValueFieldName::VAL>>(
+          record);
     } else {
-      this->rvalDeviceSupport.reset(
-        new FixedScalarRecordDeviceSupport<RecordType, Direction, RecordValueFieldName::RVAL>(
-          record));
+      this->rvalDeviceSupport =
+        std::make_unique<FixedScalarRecordDeviceSupport<RecordType, Direction, RecordValueFieldName::RVAL>>(
+          record);
     }
   }
 

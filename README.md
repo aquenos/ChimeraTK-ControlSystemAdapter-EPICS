@@ -60,6 +60,10 @@ and the
 For historic reasons, the library provided by ChimeraTK Device Access
 is still called `mtca4u-DeviceAccess`.
 
+You need a compiler that supports C++ 14 in order to compile this device
+support. This should not be a limitation because recent versions of ChimeraTK
+Device Access and the Control System Adapter use C++ 14 features as well.
+
 
 Adding the device support to an EPICS IOC
 -----------------------------------------
