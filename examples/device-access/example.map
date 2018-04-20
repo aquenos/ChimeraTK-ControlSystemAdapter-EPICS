@@ -1,0 +1,7 @@
+# name                    nr of elements       address          size           bar    width   fracbits    signed
+
+INT                           0x00000001    0x00000000    0x00000004    0x00000000       32         0         0
+DOUBLE                        0x00000001    0x00000004    0x00000008    0x00000000       32        12         1
+BOOL                          0x00000001    0x0000000C    0x00000004    0x00000000        1         0         0
+DOUBLE_ARRAY                  0x0000000A    0x00000010    0x00000028    0x00000000       32         8         0
+SHORT_ARRAY                   0x0000000A    0x00000038    0x00000028    0x00000000       16         0         1
