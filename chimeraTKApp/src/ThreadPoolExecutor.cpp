@@ -35,7 +35,7 @@ ThreadPoolExecutor::~ThreadPoolExecutor() {
 
 void ThreadPoolExecutor::runThread() {
   for (;;) {
-    std::function<void ()> nextTask;
+    std::packaged_task<void()> nextTask;
     {
       std::unique_lock<std::mutex> lock(this->mutex);
       if (this->tasks.empty()) {
@@ -77,7 +77,7 @@ void ThreadPoolExecutor::shutdown() {
   this->tasksCv.notify_all();
   // We help these threads in processing any remaining tasks.
   for (;;) {
-    std::function<void ()> nextTask;
+    std::packaged_task<void()> nextTask;
     {
       std::lock_guard<std::mutex> lock(this->mutex);
       if (this->tasks.empty()) {

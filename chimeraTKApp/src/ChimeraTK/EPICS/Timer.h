@@ -102,9 +102,11 @@ private:
   struct Task {
 
     /**
-     * Function that shall be executed.
+     * Task that shall be executed. The field is marked as mutable so that we
+     * can move from it, even though the priority_queue's top() method only
+     * returns a const reference.
      */
-    std::function<void()> func;
+    mutable std::packaged_task<void()> task;
 
     /**
      * Time at or after which this task shall be executed.
@@ -160,7 +162,7 @@ private:
     /**
      * Add a task to the queue and start a thread if necessary.
      */
-    void submitTask(Task const &task);
+    void submitTask(Task &&task);
 
   };
 
@@ -187,15 +189,17 @@ std::future<typename std::result_of<typename std::decay<Function>::type(typename
     Function &&f,
     Args &&...args) {
   using T = typename std::result_of<typename std::decay<Function>::type(typename std::decay<Args>::type...)>::type;
-  // We have to use a shared_ptr because a packaged_task is not
-  // copy-constructible and we cannot move into a lambda expression in C++ 11
-  // (this is a C++ 14 feature).
-  auto task = std::make_shared<std::packaged_task<T()>>(
+  auto task = std::packaged_task<T()>(
     std::bind(std::forward<Function>(f), std::forward<Args>(args)...));
-  this->impl->submitTask(
-    Task{[task](){ (*task)(); },
-    Clock::now() + delay});
-  return task->get_future();
+  auto future = task.get_future();
+  // We have to package the packaged_task in another packaged_task so that
+  // all tasks on the queue have the same return type.
+  auto voidTask = std::packaged_task<void()>(
+    [task = std::move(task)]() mutable {
+      task();
+    });
+  this->impl->submitTask(Task{std::move(voidTask), Clock::now() + delay});
+  return future;
 }
 
 } // namespace EPICS

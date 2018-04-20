@@ -86,7 +86,7 @@ private:
   /**
    * Tasks that have been submitted, but are not running yet.
    */
-  std::queue<std::function<void()>> tasks;
+  std::queue<std::packaged_task<void()>> tasks;
 
   /**
    * Condition variable that is used to notify the pool threads. The pool
@@ -118,12 +118,18 @@ template<typename Function, typename... Args>
 std::future<typename std::result_of<typename std::decay<Function>::type(typename std::decay<Args>::type...)>::type> ThreadPoolExecutor::submitTask(
     Function &&f, Args &&...args) {
   using T = typename std::result_of<typename std::decay<Function>::type(typename std::decay<Args>::type...)>::type;
-  // We have to use a shared_ptr because a packaged_task is not
-  // copy-constructible and we cannot move into a lambda expression in C++ 11
-  // (this is a C++ 14 feature).
-  auto task = std::make_shared<std::packaged_task<T()>>(
+  auto task = std::packaged_task<T()>(
     std::bind(std::forward<Function>(f), std::forward<Args>(args)...));
+  auto future = task.get_future();
+  // We have to package the packaged_task in another packaged_task so that
+  // all tasks on the queue have the same return type.
+  auto voidTask = std::packaged_task<void()>(
+    [task = std::move(task)]() mutable {
+      task();
+    });
   {
+    // We do these checks that late because we need to acquire the mutex for
+    // them and we want to hold the lock as shortly as possible.
     std::lock_guard<std::mutex> lock(this->mutex);
     if (this->shutdownRequested) {
       throw std::runtime_error(
@@ -133,12 +139,10 @@ std::future<typename std::result_of<typename std::decay<Function>::type(typename
       throw std::runtime_error(
         "Tasks cannot be submitted to a thread pool that does not have any threads.");
     }
-    this->tasks.push([task](){
-        (*task)();
-      });
+    this->tasks.push(std::move(voidTask));
   }
   this->tasksCv.notify_one();
-  return task->get_future();
+  return future;
 }
 
 } // namespace EPICS

@@ -253,9 +253,7 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
   auto &value = this->lastValueRead;
   auto &timeStamp = this->lastTimeStampRead;
   auto &versionNumber = this->lastVersionNumberRead;
-  // We would rather move the callbacks into the lambda expression, but this is
-  // only possible in C++ 14.
-  return [value, timeStamp, versionNumber, callbacks](){
+  return [value, timeStamp, versionNumber, callbacks = std::move(callbacks)](){
       for (auto &callback : callbacks) {
         try {
           callback(value, timeStamp, versionNumber);

@@ -27,7 +27,7 @@ Timer::Timer() : impl(std::make_shared<Impl>()) {
 
 void Timer::Impl::runThread() {
   for (;;) {
-    std::function<void ()> nextTask;
+    std::packaged_task<void()> nextTask;
     {
       std::unique_lock<std::mutex> lock(this->mutex);
       if (this->tasks.empty()) {
@@ -37,17 +37,21 @@ void Timer::Impl::runThread() {
       while (Clock::now() < this->tasks.top().time) {
         this->tasksCv.wait_until(lock, this->tasks.top().time);
       }
-      nextTask = this->tasks.top().func;
+      // The const_cast is a bit ugly, but there is no other way to move an
+      // element from a priority queue (pop() returns void). As we only
+      // modify a field not used in comparison, the priority_queue should not
+      // care about us modifying the stored object.
+      nextTask = std::move(this->tasks.top().task);
       this->tasks.pop();
     }
     nextTask();
   }
 }
 
-void Timer::Impl::submitTask(Task const &task) {
+void Timer::Impl::submitTask(Task &&task) {
   {
     std::lock_guard<std::mutex> lock(this->mutex);
-    this->tasks.push(task);
+    this->tasks.push(std::move(task));
     // If no thread is running, we have to start one.
     if (!this->threadRunning) {
       // We use a shared pointer to this instead of this so that this object
