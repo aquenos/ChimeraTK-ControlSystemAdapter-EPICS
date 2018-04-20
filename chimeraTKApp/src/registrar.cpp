@@ -251,7 +251,7 @@ extern "C" {
   static const iocshArg * const iocshChimeraTKSetDMapFilePathArgs[] = {
       &iocshChimeraTKSetDMapFilePathArg0 };
   static const iocshFuncDef iocshChimeraTKSetDMapFilePathFuncDef = {
-      "chimeraTKSetDMapFilePath", 2, iocshChimeraTKSetDMapFilePathArgs };
+      "chimeraTKSetDMapFilePath", 1, iocshChimeraTKSetDMapFilePathArgs };
 
   /**
    * Implementation of the iocsh chimeraTKSetDMapFilePath function.
