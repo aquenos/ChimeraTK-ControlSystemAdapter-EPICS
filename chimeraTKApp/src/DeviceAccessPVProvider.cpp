@@ -63,7 +63,7 @@ std::type_info const &DeviceAccessPVProvider::getDefaultType(
   auto &dataDescriptor = registerInfo->getDataDescriptor();
   switch (dataDescriptor.fundamentalType()) {
     case RegisterInfo::FundamentalType::numeric:
-      if (!dataDescriptor.isIntegral()) {
+      if (dataDescriptor.isIntegral()) {
         if (dataDescriptor.isSigned()) {
           return typeid(std::int32_t);
         } else {
