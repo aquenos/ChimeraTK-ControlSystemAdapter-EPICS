@@ -23,6 +23,9 @@
 # the CONFIG_SITE file.
 
 # Variables and paths to dependent modules:
+# The following line is needed so that the ChimeraTK device support is
+# available. You might have to change the path used in this line to match the
+# path on your system.
 CHIMERATK_EPICS=/opt/epics/modules/chimeratk
 
 # If using the sequencer, point SNCSEQ at its top directory:

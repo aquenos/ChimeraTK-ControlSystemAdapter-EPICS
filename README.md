@@ -264,6 +264,15 @@ detected automatically, even if they can be treated as numeric registers. In
 this case, one of the supported data types has to be specified explicitly as
 part of the register address specified in the record's `INP` or `OUT` field.
 
+
+Examples
+--------
+
+You can find an example IOC using a dummy ChimeraTK Device Access device in
+`examples/device-access`. Please refer to the
+[corresponding README file](examples/device-access/README.md) for details.
+
+
 Contact
 -------
 
@@ -274,7 +283,9 @@ If you want to report security vulnerabilities, we kindly ask that you use the
 contact information given on our web page (http://www.aquenos.com/) in order to
 get in touch with us.
 
----
+
+Copyright information
+---------------------
 
 Copyright notice for the ChimeraTK Control System Adapter for EPICS:
 

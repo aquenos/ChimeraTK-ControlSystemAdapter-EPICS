@@ -16,9 +16,13 @@ DBD += deviceAccessExample.dbd
 deviceAccessExample_DBD += base.dbd
 
 # Include dbd files from all support applications:
+# The IOC needs to import the ChimeraTK-ControlSystemAdapter-EPICS.dbd file, so
+# that the "ChimeraTK" device type is available for records.
 deviceAccessExample_DBD += ChimeraTK-ControlSystemAdapter-EPICS.dbd
 
 # Add all the support libraries needed by this IOC
+# The IOC needs to be linked to the ChimeraTK-ControlSystemAdapter-EPICS device
+# support. in order to support the "ChimeraTK" device type for records.
 deviceAccessExample_LIBS += ChimeraTK-ControlSystemAdapter-EPICS
 
 # deviceAccessExample_registerRecordDeviceDriver.cpp derives from deviceAccessExample.dbd
