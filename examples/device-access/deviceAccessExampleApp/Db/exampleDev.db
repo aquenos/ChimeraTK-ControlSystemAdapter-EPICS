@@ -1,0 +1,210 @@
+# When the underlying register is of an integer type, the device support writes
+# the value to the RVAL field and it gets converted when LINR is set.
+record(ai, "$(P)$(R)Ai:Int") {
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) INT")
+  field(SCAN, ".1 second")
+  field(LINR, "SLOPE")
+  field(EOFF, "10")
+  field(ESLO, "0.5")
+}
+
+# This also works for output records.
+record(ao, "$(P)$(R)Ao:Int") {
+  field(DTYP, "ChimeraTK")
+  field(OUT,  "@$(DEV) INT")
+  field(LINR, "SLOPE")
+  field(EOFF, "10")
+  field(ESLO, "0.5")
+}
+
+# If the underlying register is of a floating or fixed point type, the device
+# support will write the value directly to the VAL field, even if LINR is set.
+# In order to avoid confusion, it is strongly suggested to keep LINR at its
+# default value in this case.
+record(ai, "$(P)$(R)Ai:Double") {
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) DOUBLE")
+  field(SCAN, ".1 second")
+}
+
+# If you really need conversion for a floating or fixed point register, you can
+# treat it as an integer register by specifying the data-type explicitly. This
+# function relies on the internal conversion facilities built into ChimeraTK
+# Device Access.
+record(ai, "$(P)$(R)Ai:DoubleAsInt") {
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) DOUBLE int32")
+  field(SCAN, ".1 second")
+  field(LINR, "SLOPE")
+  field(EOFF, "10")
+  field(ESLO, "0.5")
+}
+
+# bi and bo records are supported as well. For these records, the device support
+# always uses the RVAL field. Typically, bi and bo records are used for boolean
+# or integer registers, but in theory it is also possible to use the with fixed
+# or floating point registers.
+record(bi, "$(P)$(R)Bi:Bool") {
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) BOOL")
+  field(SCAN, ".1 second")
+  field(ZNAM, "0")
+  field(ONAM, "1")
+}
+
+# If you want to make sure that any output record (not just the bo record)
+# initially is not in the undefined state, causing an INVALID alarm, you have to
+# set PINI to YES. In general, this device supports tries to initialize a
+# records value with the value read from the register, but - depending on the
+# device backend - reading an initial value might not be possible or writing
+# back the same value might still have side-effects.
+record(bo, "$(P)$(R)Bo:Bool") {
+  field(DTYP, "ChimeraTK")
+  field(OUT,  "@$(DEV) BOOL")
+  field(PINI, "YES")
+  field(ZNAM, "0")
+  field(ONAM, "1")
+}
+
+# longin and longout records only have a VAL field, so the device support always
+# uses that field. Like bi/bo records, longin/longout is mostly useful for
+# integer registers, but strictly speaking, they can be used with floating point
+# registers as well.
+record(longin, "$(P)$(R)Longin:Int") {
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) INT")
+  field(SCAN, ".1 second")
+}
+
+record(longout, "$(P)$(R)Longout:Int") {
+  field(DTYP, "ChimeraTK")
+  field(OUT,  "@$(DEV) INT")
+}
+
+# mbbi, mbbo, mbbiDirect, and mbboDirect basically do the same as bi and bo, but
+# for multiple bits. Again, they are most useful when being used with integer
+# values.
+record(mbbi, "$(P)$(R)Mbbi:Int") {
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) INT")
+  field(SCAN, ".1 second")
+  field(ZRVL, "0")
+  field(ZRST, "0")
+  field(ONVL, "1")
+  field(ONST, "1")
+  field(TWVL, "2")
+  field(TWST, "2")
+  field(THVL, "3")
+  field(THST, "3")
+  field(FRVL, "4")
+  field(FRST, "4")
+  field(FVVL, "5")
+  field(FVST, "5")
+  field(SXVL, "6")
+  field(SXST, "6")
+  field(SVVL, "7")
+  field(SVST, "7")
+  field(EIVL, "8")
+  field(EIST, "8")
+  field(NIVL, "9")
+  field(NIST, "9")
+  field(TEVL, "10")
+  field(TEST, "10")
+  field(ELVL, "11")
+  field(ELST, "11")
+  field(TVVL, "12")
+  field(TVST, "12")
+  field(TTVL, "13")
+  field(TTST, "13")
+  field(FTVL, "14")
+  field(FTST, "14")
+  field(FFVL, "15")
+  field(FFST, "15")
+}
+
+record(mbbo, "$(P)$(R)Mbbo:Int") {
+  field(DTYP, "ChimeraTK")
+  field(OUT,  "@$(DEV) INT")
+  field(ZRVL, "0")
+  field(ZRST, "0")
+  field(ONVL, "1")
+  field(ONST, "1")
+  field(TWVL, "2")
+  field(TWST, "2")
+  field(THVL, "3")
+  field(THST, "3")
+  field(FRVL, "4")
+  field(FRST, "4")
+  field(FVVL, "5")
+  field(FVST, "5")
+  field(SXVL, "6")
+  field(SXST, "6")
+  field(SVVL, "7")
+  field(SVST, "7")
+  field(EIVL, "8")
+  field(EIST, "8")
+  field(NIVL, "9")
+  field(NIST, "9")
+  field(TEVL, "10")
+  field(TEST, "10")
+  field(ELVL, "11")
+  field(ELST, "11")
+  field(TVVL, "12")
+  field(TVST, "12")
+  field(TTVL, "13")
+  field(TTST, "13")
+  field(FTVL, "14")
+  field(FTST, "14")
+  field(FFVL, "15")
+  field(FFST, "15")
+}
+
+record(mbbiDirect, "$(P)$(R)MbbiDirect:Int") {
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) INT")
+  field(SCAN, ".1 second")
+}
+
+record(mbboDirect, "$(P)$(R)MbboDirect:Int") {
+  field(DTYP, "ChimeraTK")
+  field(OUT,  "@$(DEV) INT")
+}
+
+# Registers that represent arrays can be accessed as well. The aai and aao
+# records must be used for that purpose and the number of elements in the record
+# must exactly match the number of elements in the register. The data types must
+# match as well (except for signed / unsigned conversion).
+record(aai, "$(P)$(R)Aai:Double") {
+  field(FTVL, "DOUBLE")
+  field(NELM, "10")
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) DOUBLE_ARRAY")
+  field(SCAN, ".1 second")
+}
+
+record(aao, "$(P)$(R)Aao:Double") {
+  field(FTVL, "DOUBLE")
+  field(NELM, "10")
+  field(DTYP, "ChimeraTK")
+  field(OUT,  "@$(DEV) DOUBLE_ARRAY")
+}
+
+# Floating or fixed point numbers are automatically detected as double, signed
+# integers as int32 and unsigned integers as uint32. This means that the data
+# type has to be specified explicitly, if this does not match the arrays element
+# type.
+record(aai, "$(P)$(R)Aai:Short") {
+  field(FTVL, "SHORT")
+  field(NELM, "10")
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) SHORT_ARRAY int16")
+  field(SCAN, ".1 second")
+}
+
+record(aao, "$(P)$(R)Aao:Short") {
+  field(FTVL, "SHORT")
+  field(NELM, "10")
+  field(DTYP, "ChimeraTK")
+  field(OUT,  "@$(DEV) SHORT_ARRAY int16")
+}
