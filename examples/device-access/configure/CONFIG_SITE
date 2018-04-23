@@ -35,9 +35,32 @@ CHECK_RELEASE = YES
 #HOST_OPT = NO
 #CROSS_OPT = NO
 
+# Path to the ChimeraTK-ControlSystemAdapter-config executable. By default, it
+# is expected to be in the PATH, but one can override this by setting this
+# variable to the full path to the executable in CONFIG_SITE.local.
+CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG = ChimeraTK-ControlSystemAdapter-config
+
+# Path to the mtca4u-deviceaccess-config executable. By default, it is expected
+# to be in the PATH, but one can override this by setting this variable to the
+# full path to the executable in CONFIG_SITE.local.
+CHIMERATK_DEVICE_ACCESS_CONFIG = mtca4u-deviceaccess-config
+
 # These allow developers to override the CONFIG_SITE variable
 # settings without having to modify the configure/CONFIG_SITE
 # file itself.
 -include $(TOP)/../CONFIG_SITE.local
 -include $(TOP)/configure/CONFIG_SITE.local
 
+# We discover the linker flags by calling the config utilities for the ChimeraTK
+# Control-System Adapter and DeviceAccess. We do not do this if the user has
+# defined CHIMERATK_SKIP_LDFLAGS in CONFIG_SITE.local.
+# As we do not have our own code that links with either library, including the
+# linker flags is sufficient and we do not have to include the compiler flags.
+# In fact, on some platforms, it might not even be necessary to include the
+# linker flags, but at least on Linux the executable will not be able to find
+# the libraries if we do not include the linker flags here.
+
+ifndef CHIMERATK_SKIP_LDFLAGS
+  USR_LDFLAGS += $(shell $(CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG) --ldflags)
+  USR_LDFLAGS += $(shell $(CHIMERATK_DEVICE_ACCESS_CONFIG) --ldflags)
+endif
