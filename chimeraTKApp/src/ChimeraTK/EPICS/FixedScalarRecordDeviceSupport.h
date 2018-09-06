@@ -141,11 +141,11 @@ protected:
     auto time = versionNumber.getTime();
     std::chrono::nanoseconds::rep timeInNanosecs = std::chrono::time_point_cast<std::chrono::nanoseconds>(time).
                                                    time_since_epoch().count();
-    std::chrono::seconds::rep secs = timeInNanosecs / 1e9;
+    std::chrono::seconds::rep secs = timeInNanosecs / 1000000000;
     record->time.secPastEpoch =
         (secs < POSIX_TIME_AT_EPICS_EPOCH) ?
             0 : (secs - POSIX_TIME_AT_EPICS_EPOCH);
-    record->time.nsec = timeInNanosecs % 1e9;
+    record->time.nsec = timeInNanosecs % 1000000000;
   }
 
 };
