@@ -107,7 +107,7 @@ public:
   virtual std::size_t getNumberOfElements() override;
 
   // Declared in PVSupport.
-  virtual std::tuple<Value, TimeStamp, VersionNumber> initialValue() override;
+  virtual std::tuple<Value, VersionNumber> initialValue() override;
 
   // Declared in PVSupport.
   virtual void notify(

@@ -116,11 +116,15 @@ protected:
   /**
    * Updates the record's TIME field with the specified time stamp.
    */
-  void updateTimeStamp(TimeStamp const &timeStamp) {
+  void updateTimeStamp(VersionNumber const &versionNumber) {
+    auto time = versionNumber.getTime();
+    std::chrono::nanoseconds::rep timeInNanosecs = std::chrono::time_point_cast<std::chrono::nanoseconds>(time).
+                                                   time_since_epoch().count();
+    std::chrono::seconds::rep secs = timeInNanosecs / 1000000000;
     record->time.secPastEpoch =
-        (timeStamp.seconds < POSIX_TIME_AT_EPICS_EPOCH) ?
-            0 : (timeStamp.seconds - POSIX_TIME_AT_EPICS_EPOCH);
-    record->time.nsec = timeStamp.nanoSeconds;
+        (secs < POSIX_TIME_AT_EPICS_EPOCH) ?
+            0 : (secs - POSIX_TIME_AT_EPICS_EPOCH);
+    record->time.nsec = timeInNanosecs % 1000000000;
   }
 
 private:
@@ -230,9 +234,9 @@ private:
   std::exception_ptr notifyException;
 
   /**
-   * Time stamp that belongs to notifyValue.
+   * Version number / time stamp that belongs to notifyValue.
    */
-  TimeStamp notifyTimeStamp;
+  VersionNumber notifyVersionNumber;
 
   /**
    * Value that was sent with last notification. This is actually a pointer to a
@@ -247,9 +251,9 @@ private:
   std::exception_ptr readException;
 
   /**
-   * Time stamp that belongs to readValue.
+   * Version number / Time stamp that belongs to readValue.
    */
-  TimeStamp readTimeStamp;
+  VersionNumber readVersionNumber;
 
   /**
    * Value that was read by last read attempt. This is actually a pointer to a
@@ -278,10 +282,9 @@ private:
       pvSupport->notify(
         [this](
             typename PVSupport<T>::SharedValue const &value,
-            TimeStamp const &timeStamp,
             VersionNumber const &versionNumber) {
           this->notifyValue = value;
-          this->notifyTimeStamp = timeStamp;
+          this->notifyVersionNumber = versionNumber;
           ensureScanIoRequest(this->ioIntrModeScanPvt);
         },
         [this](std::exception_ptr const& error){
@@ -349,7 +352,7 @@ private:
         value->data(),
         this->record->nelm * sizeof(T));
       this->record->nord = this->record->nelm;
-      this->updateTimeStamp(this->readTimeStamp);
+      this->updateTimeStamp(this->readVersionNumber);
       return;
     }
 
@@ -379,7 +382,7 @@ private:
         value->data(),
         this->record->nelm * sizeof(T));
       this->record->nord = this->record->nelm;
-      this->updateTimeStamp(this->notifyTimeStamp);
+      this->updateTimeStamp(this->notifyVersionNumber);
       pvSupport->notifyFinished();
       return;
     }
@@ -391,10 +394,9 @@ private:
     bool immediate = pvSupport->read(
       [this](bool immediate,
           typename PVSupport<T>::SharedValue const &value,
-          TimeStamp const &timeStamp,
           VersionNumber const &versionNumber) {
         this->readValue = value;
-        this->readTimeStamp = timeStamp;
+        this->readVersionNumber = versionNumber;
         if (!immediate) {
           ::callbackRequestProcessCallback(
             &this->processCallback, priorityMedium, this->record);

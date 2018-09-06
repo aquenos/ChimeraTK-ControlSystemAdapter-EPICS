@@ -137,11 +137,15 @@ protected:
   /**
    * Updates the record's TIME field with the specified time stamp.
    */
-  void updateTimeStamp(TimeStamp const &timeStamp) {
+  void updateTimeStamp(VersionNumber const &versionNumber) {
+    auto time = versionNumber.getTime();
+    std::chrono::nanoseconds::rep timeInNanosecs = std::chrono::time_point_cast<std::chrono::nanoseconds>(time).
+                                                   time_since_epoch().count();
+    std::chrono::seconds::rep secs = timeInNanosecs / 1000000000;
     record->time.secPastEpoch =
-        (timeStamp.seconds < POSIX_TIME_AT_EPICS_EPOCH) ?
-            0 : (timeStamp.seconds - POSIX_TIME_AT_EPICS_EPOCH);
-    record->time.nsec = timeStamp.nanoSeconds;
+        (secs < POSIX_TIME_AT_EPICS_EPOCH) ?
+            0 : (secs - POSIX_TIME_AT_EPICS_EPOCH);
+    record->time.nsec = timeInNanosecs % 1000000000;
   }
 
 };
@@ -244,9 +248,9 @@ private:
   std::exception_ptr notifyException;
 
   /**
-   * Time stamp that belongs to notifyValue.
+   * Version number / time stamp that belongs to notifyValue.
    */
-  TimeStamp notifyTimeStamp;
+  VersionNumber notifyVersionNumber;
 
   /**
    * Value that was sent with last notification.
@@ -259,9 +263,9 @@ private:
   std::exception_ptr readException;
 
   /**
-   * Time stamp that belongs to readValue.
+   * Version number / time stamp that belongs to readValue.
    */
-  TimeStamp readTimeStamp;
+  VersionNumber readVersionNumber;
 
   /**
    * Value that was read by last read attempt.
@@ -288,7 +292,6 @@ private:
       pvSupport->notify(
         [this](
             typename PVSupport<T>::SharedValue const &value,
-            TimeStamp const &timeStamp,
             VersionNumber const &versionNumber) {
           // We already checked the number of elements of the PV in the
           // constructor, so this check should always succeed. However, if
@@ -301,7 +304,7 @@ private:
             throw std::logic_error(oss.str());
           }
           this->notifyValue = static_cast<RecordValueType>((*value)[0]);
-          this->notifyTimeStamp = timeStamp;
+          this->notifyVersionNumber = versionNumber;
           ensureScanIoRequest(this->ioIntrModeScanPvt);
         },
         [this](std::exception_ptr const& error){
@@ -352,7 +355,7 @@ private:
         std::rethrow_exception(tempException);
       }
       this->getValueField() = this->readValue;
-      this->updateTimeStamp(this->readTimeStamp);
+      this->updateTimeStamp(this->readVersionNumber);
       return;
     }
 
@@ -366,7 +369,7 @@ private:
         std::rethrow_exception(tempException);
       }
       this->getValueField() = this->notifyValue;
-      this->updateTimeStamp(this->notifyTimeStamp);
+      this->updateTimeStamp(this->notifyVersionNumber);
       pvSupport->notifyFinished();
       return;
     }
@@ -378,7 +381,6 @@ private:
     bool immediate = pvSupport->read(
       [this](bool immediate,
           typename PVSupport<T>::SharedValue const &value,
-          TimeStamp const &timeStamp,
           VersionNumber const &versionNumber) {
         // We already checked the number of elements of the PV in the
         // constructor, so this check should always succeed. However, if
@@ -391,7 +393,7 @@ private:
           throw std::logic_error(oss.str());
         }
         this->readValue = static_cast<RecordValueType>((*value)[0]);
-        this->readTimeStamp = timeStamp;
+        this->readVersionNumber = versionNumber;
         if (!immediate) {
           ::callbackRequestProcessCallback(
             &this->processCallback, priorityMedium, this->record);

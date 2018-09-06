@@ -28,7 +28,6 @@
 #include <tuple>
 #include <vector>
 
-#include <ChimeraTK/TimeStamp.h>
 #include <ChimeraTK/VersionNumber.h>
 
 namespace ChimeraTK {
@@ -148,7 +147,7 @@ public:
    * Type of the callback function that is called when a new value is available.
    * Such a function can be registered by calling notify(...);
    */
-  using NotifyCallback = std::function<void(SharedValue const &, TimeStamp const &, VersionNumber const &)>;
+  using NotifyCallback = std::function<void(SharedValue const &, VersionNumber const &)>;
 
   /**
    * Type of the callback function that is called when there is an error for a
@@ -163,7 +162,7 @@ public:
    * read(...) returns (true) or it is called at a later point in time, after
    * read(...) has returned (false).
    */
-  using ReadCallback = std::function<void(bool, SharedValue const &, TimeStamp const &, VersionNumber const &)>;
+  using ReadCallback = std::function<void(bool, SharedValue const &, VersionNumber const &)>;
 
   /**
    * Type of the callback function that is called when a value is successfully
@@ -206,7 +205,7 @@ public:
    * This method throws an exception when the implementation cannot provide an
    * initial value for the respective process variable.
    */
-  virtual std::tuple<Value, TimeStamp, VersionNumber> initialValue();
+  virtual std::tuple<Value, VersionNumber> initialValue();
 
   /**
    * Requests notifications. The successCallback is called every time there is

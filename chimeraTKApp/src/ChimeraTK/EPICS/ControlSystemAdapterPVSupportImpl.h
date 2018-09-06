@@ -80,7 +80,7 @@ std::size_t ControlSystemAdapterPVSupport<T>::getNumberOfElements() {
 }
 
 template<typename T>
-std::tuple<typename PVSupport<T>::Value, TimeStamp, VersionNumber> ControlSystemAdapterPVSupport<T>::initialValue() {
+std::tuple<typename PVSupport<T>::Value, VersionNumber> ControlSystemAdapterPVSupport<T>::initialValue() {
   return this->shared->initialValue();
 }
 
