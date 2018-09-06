@@ -70,14 +70,13 @@ std::size_t ControlSystemAdapterSharedPVSupport<T>::getNumberOfElements() {
 }
 
 template<typename T>
-std::tuple<typename PVSupport<T>::Value, TimeStamp, VersionNumber> ControlSystemAdapterSharedPVSupport<T>::initialValue() {
+std::tuple<typename PVSupport<T>::Value, VersionNumber> ControlSystemAdapterSharedPVSupport<T>::initialValue() {
   std::lock_guard<std::recursive_mutex> lock(this->mutex);
   if (!this->initialValueAvailable) {
     throw std::runtime_error("The initial value is not available any longer.");
   }
   return std::make_tuple(
     this->processArray->accessChannel(0),
-    this->processArray->getTimeStamp(),
     this->processArray->getVersionNumber());
 }
 
@@ -95,7 +94,6 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
     ReadCallback const &successCallback,
     ErrorCallback const &errorCallback) {
   decltype(this->lastValueRead) lastValue;
-  TimeStamp lastTimeStamp;
   VersionNumber lastVersionNumber;
   try {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
@@ -118,13 +116,11 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
           this->processArray->getNumberOfSamples());
         std::swap(*newValue, this->processArray->accessChannel(0));
         this->lastValueRead = newValue;
-        this->lastTimeStampRead = this->processArray->getTimeStamp();
         this->lastVersionNumberRead = this->processArray->getVersionNumber();
         this->pvProvider->scheduleCallNotify(this->shared_from_this());
       }
     }
     lastValue = this->lastValueRead;
-    lastTimeStamp = this->lastTimeStampRead;
     lastVersionNumber = this->lastVersionNumberRead;
 
   } catch (...) {
@@ -135,7 +131,7 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
     return true;
   }
   if (successCallback) {
-    successCallback(true, lastValue, lastTimeStamp, lastVersionNumber);
+    successCallback(true, lastValue, lastVersionNumber);
   }
   return true;
 }
@@ -216,7 +212,6 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
     this->processArray->getNumberOfSamples());
   std::swap(*newValue, this->processArray->accessChannel(0));
   this->lastValueRead = newValue;
-  this->lastTimeStampRead = this->processArray->getTimeStamp();
   this->lastVersionNumberRead = this->processArray->getVersionNumber();
   // We have to make a copy of the list of PV supports because we want to
   // release the mutex before actually notifying them. While creating this
@@ -251,12 +246,11 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
     }
   }
   auto &value = this->lastValueRead;
-  auto &timeStamp = this->lastTimeStampRead;
   auto &versionNumber = this->lastVersionNumberRead;
-  return [value, timeStamp, versionNumber, callbacks = std::move(callbacks)](){
+  return [value, versionNumber, callbacks = std::move(callbacks)](){
       for (auto &callback : callbacks) {
         try {
-          callback(value, timeStamp, versionNumber);
+          callback(value, versionNumber);
           return;
         } catch (std::exception &e) {
           errorPrintf(

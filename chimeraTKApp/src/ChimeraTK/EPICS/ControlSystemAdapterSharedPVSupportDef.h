@@ -168,7 +168,7 @@ public:
    * in an exception because the initial value is not available any longer after
    * such an action.
    */
-  std::tuple<Value, TimeStamp, VersionNumber> initialValue();
+  std::tuple<Value, VersionNumber> initialValue();
 
   /**
    * Reads the next available value and calls the callback. if there are PV
@@ -229,20 +229,15 @@ private:
   bool alreadyReadNewValue;
 
   /**
-   * Time stamp belonging to the value stored in lastValueRead.
+   * Version number / time stamp belonging to the value stored in lastValueRead.
    */
-  TimeStamp lastTimeStampRead;
+  VersionNumber lastVersionNumberRead;
 
   /**
    * Last value that his been read. This value might have been read by the
    * doNotify() or the read(...) method.
    */
   std::shared_ptr<Value const> lastValueRead;
-
-  /**
-   * Version number belonging to the value stored in lastValueRead.
-   */
-  VersionNumber lastVersionNumberRead;
 
   /**
    * Flag indicating whether the initial value is still available. This flag is

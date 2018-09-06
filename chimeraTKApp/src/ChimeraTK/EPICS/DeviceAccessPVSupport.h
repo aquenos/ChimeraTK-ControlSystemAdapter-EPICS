@@ -89,7 +89,7 @@ public:
   virtual std::size_t getNumberOfElements() override;
 
   // Declared in PVSupport.
-  virtual std::tuple<Value, TimeStamp, VersionNumber> initialValue() override;
+  virtual std::tuple<Value, VersionNumber> initialValue() override;
 
   // Declared in PVSupport.
   virtual bool read(
@@ -148,13 +148,12 @@ std::size_t DeviceAccessPVSupport<T>::getNumberOfElements() {
 }
 
 template<typename T>
-std::tuple<typename PVSupport<T>::Value, TimeStamp, VersionNumber> DeviceAccessPVSupport<T>::initialValue() {
+std::tuple<typename PVSupport<T>::Value, VersionNumber> DeviceAccessPVSupport<T>::initialValue() {
   this->accessor.read();
   Value value(this->accessor.getNElements());
   this->accessor.swap(value);
   return std::make_tuple(
       std::move(value),
-      TimeStamp(),
       VersionNumber());
 }
 
@@ -187,7 +186,6 @@ bool DeviceAccessPVSupport<T>::read(
       }
       try {
         successCallback(false, std::make_shared<Value const>(std::move(value)),
-          TimeStamp(),
           VersionNumber());
       } catch (std::exception &e) {
         errorPrintf(

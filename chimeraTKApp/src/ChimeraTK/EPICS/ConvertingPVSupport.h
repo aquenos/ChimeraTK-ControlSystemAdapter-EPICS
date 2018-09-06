@@ -102,12 +102,11 @@ public:
   }
 
   // Declared in PVSupport.
-  std::tuple<Value, TimeStamp, VersionNumber> initialValue() override {
+  std::tuple<Value, VersionNumber> initialValue() override {
     auto original = originalPVSupport->initialValue();
     return std::make_tuple(
       convertToTarget(std::get<0>(original)),
-      std::get<1>(original),
-      std::get<2>(original));
+      std::get<1>(original));
   }
 
   // Declared in PVSupport.
@@ -119,9 +118,8 @@ public:
     if (successCallback) {
       wrappedSuccessCallback = [successCallback](
             typename PVSupport<OriginalType>::SharedValue const &value,
-            TimeStamp const &timeStamp,
             VersionNumber const &versionNumber){
-          successCallback(convertToTarget(value), timeStamp, versionNumber);
+          successCallback(convertToTarget(value), versionNumber);
         };
     }
     if (errorCallback) {
@@ -147,10 +145,9 @@ public:
       wrappedSuccessCallback = [successCallback](
             bool immediate,
             typename PVSupport<OriginalType>::SharedValue const &value,
-            TimeStamp const &timeStamp,
             VersionNumber const &versionNumber){
           successCallback(
-            immediate, convertToTarget(value), timeStamp, versionNumber);
+            immediate, convertToTarget(value), versionNumber);
         };
     }
     if (errorCallback) {
