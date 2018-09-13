@@ -29,7 +29,6 @@ ChimeraTK-ControlSystemAdapter-EPICS_SRCS += registrar.cpp
 ChimeraTK-ControlSystemAdapter-EPICS_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += ChimeraTK-ControlSystemAdapter
-ChimeraTK-ControlSystemAdapter-EPICS_SYS_LIBS += mtca4u-deviceaccess
 
 #===========================
 

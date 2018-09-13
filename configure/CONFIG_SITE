@@ -35,11 +35,6 @@ CHECK_RELEASE = YES
 # variable to the full path to the executable.
 CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG = ChimeraTK-ControlSystemAdapter-config
 
-# Path to the mtca4u-deviceaccess-config executable. By default, it is expected
-# to be in the PATH, but one can override this by setting this variable to the
-# full path to the executable.
-CHIMERATK_DEVICE_ACCESS_CONFIG = mtca4u-deviceaccess-config
-
 # Allow user to override settings locally.
 -include $(TOP)/configure/CONFIG_SITE.local
 
@@ -50,10 +45,8 @@ CHIMERATK_DEVICE_ACCESS_CONFIG = mtca4u-deviceaccess-config
 
 ifndef CHIMERATK_SKIP_CXXFLAGS
   USR_CXXFLAGS += $(shell $(CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG) --cppflags)
-  USR_CXXFLAGS += $(shell $(CHIMERATK_DEVICE_ACCESS_CONFIG) --cppflags)
 endif
 
 ifndef CHIMERATK_SKIP_LDFLAGS
   USR_LDFLAGS += $(shell $(CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG) --ldflags)
-  USR_LDFLAGS += $(shell $(CHIMERATK_DEVICE_ACCESS_CONFIG) --ldflags)
 endif

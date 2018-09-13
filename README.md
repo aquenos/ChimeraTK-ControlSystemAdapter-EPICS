@@ -47,18 +47,13 @@ Please copy `configure/EXAMPLE_RELEASE.local` to `configure/RELEASE.local` and
 adjust the path to EPICS Base.
 
 Usually, the build system automatically detects the correct compiler and linker
-flags. However, if the `ChimeraTK-ControlSystemAdapter-config` and
-`mtca4u-deviceaccess-config` scripts are not in the `PATH`, you have to specify
-the path to these scripts explicitly. In this case, please copy
-`configure/EXAMPLE_CONFIG_SITE.local` to `configure/CONFIG_SITE.local` and
-adjust the paths to these scripts.
+flags. However, if the `ChimeraTK-ControlSystemAdapter-config` script is not in
+the `PATH`, you have to specify the path to these scripts explicitly. In this
+case, please copy `configure/EXAMPLE_CONFIG_SITE.local` to
+`configure/CONFIG_SITE.local` and adjust the paths to these scripts.
 
 The ChimeraTK Control System Adapter for EPICS needs the
-[ChimeraTK Control System Adapter core library](https://github.com/ChimeraTK/ControlSystemAdapter/)
-and the
-[ChimeraTK Device Access library](https://github.com/ChimeraTK/DeviceAccess/).
-For historic reasons, the library provided by ChimeraTK Device Access
-is still called `mtca4u-DeviceAccess`.
+[ChimeraTK Control System Adapter core library](https://github.com/ChimeraTK/ControlSystemAdapter/).
 
 You need a compiler that supports C++ 14 in order to compile this device
 support. This should not be a limitation because recent versions of ChimeraTK

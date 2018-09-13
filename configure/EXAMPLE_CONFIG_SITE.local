@@ -2,6 +2,3 @@
 # define this, if it is not in the PATH.
 CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG = /path/to/ChimeraTK-ControlSystemAdapter-config
 
-# Path to the mtca4u-deviceaccess-config executable. You only have to define
-# this, if it is not in the PATH.
-CHIMERATK_DEVICE_ACCESS_CONFIG = /path/to/mtca4u-deviceaccess-config
