@@ -6,7 +6,7 @@ About
 
 The [ChimeraTK project](https://github.com/ChimeraTK/) provides a set of
 libraries that allow for the easy integration of hardware devices (in particular
-devices based on MicroTCA / PCIE Express) into control-system applications.
+devices based on MicroTCA / PCI Express) into control-system applications.
 
 This EPICS device support provides an interface between EPICS and the ChimeraTK
 core libraries. There are two ways in which this EPICS device support integrates
