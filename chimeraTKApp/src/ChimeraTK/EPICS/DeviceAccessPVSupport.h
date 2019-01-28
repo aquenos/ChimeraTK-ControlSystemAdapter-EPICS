@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -175,6 +175,7 @@ bool DeviceAccessPVSupport<T>::read(
       } catch (...) {
         try {
           errorCallback(false, std::current_exception());
+          return;
         } catch (std::exception &e) {
           errorPrintf(
             "A read callback threw an exception. This indicates a bug in the record device support code. The exception message was: %s",
@@ -230,6 +231,7 @@ bool DeviceAccessPVSupport<T>::write(
       } catch (...) {
         try {
           errorCallback(false, std::current_exception());
+          return;
         } catch (std::exception &e) {
           errorPrintf(
             "A write callback threw an exception. This indicates a bug in the record device support code. The exception message was: %s",
