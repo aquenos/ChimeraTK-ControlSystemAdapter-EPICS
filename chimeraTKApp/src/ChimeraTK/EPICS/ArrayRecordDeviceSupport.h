@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2015-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -34,6 +34,7 @@ extern "C" {
 #include <dbFldTypes.h>
 #include <dbLink.h>
 #include <dbScan.h>
+#include <epicsTypes.h>
 } // extern "C"
 
 #include "RecordDeviceSupportBase.h"
@@ -45,6 +46,86 @@ namespace ChimeraTK {
 namespace EPICS {
 
 namespace detail {
+
+/**
+ * Helper structure for reading and writing data from and to the record's value
+ * buffer. This structure also provides a function for initializing the buffer
+ * that stores the record's value.
+ *
+ * This structure is used so that we can implement a different logic for dealing
+ * with an array of strings, where we cannot simply copy a block of memory.
+ *
+ * This data-structure does not update the record's NORD field when writing
+ * data.
+ *
+ * The first template parameter is the record type and the second template
+ * parameter is the type of the value's elements (e.g. int, string, etc.).
+ */
+template<typename RecordType, typename T>
+struct ArrayRecordBufferHelper {
+
+  inline static void initializeBuffer(RecordType *record) {
+    record->bptr = new T[record->nelm];
+    // Ensure that the buffer is clean.
+    std::memset(record->bptr, 0, sizeof(T) * record->nelm);
+  }
+
+  inline static std::vector<T> readValue(RecordType *record) {
+    std::vector<T> value(record->nelm);
+    std::memcpy(
+      value.data(),
+      record->bptr,
+      record->nelm * sizeof(T));
+    return value;
+  }
+
+  inline static void writeValue(RecordType *record, std::vector<T> const &value) {
+    std::memcpy(
+        record->bptr,
+        value.data(),
+        record->nelm * sizeof(T));
+  }
+
+};
+
+template<typename RecordType>
+struct ArrayRecordBufferHelper<RecordType, std::string> {
+
+  inline static void initializeBuffer(RecordType *record) {
+    record->bptr = new char[MAX_STRING_SIZE * record->nelm];
+    std::memset(record->bptr, 0, MAX_STRING_SIZE * record->nelm);
+  }
+
+  inline static std::vector<std::string> readValue(RecordType *record) {
+    std::vector<std::string> value(record->nelm);
+    // The EPICS Base code ensure that all strings are null-terminated. The
+    // relevant code can be found in dbConvert.c and dbFastLinkConv.c.
+    // However, if NORD < NELM, the rest of the array might contain garbage, so
+    // we ensure that any extra elements are empty strings.
+    char *buffer = static_cast<char *>(record->bptr);
+    for (auto i = record->nord; i < record->nelm; ++i) {
+      buffer[i * MAX_STRING_SIZE] = '\0';
+    }
+    for (std::size_t i = 0; i < record->nelm; ++i) {
+      // There is an assignment operator that expects a pointer to a
+      // null-terminated string, so that the following line is perfectly legal.
+      value[i] = buffer + i * MAX_STRING_SIZE;
+    }
+    return value;
+  }
+
+  inline static void writeValue(RecordType *record, std::vector<std::string> const &value) {
+    char *buffer = static_cast<char *>(record->bptr);
+    for (std::size_t i = 0; i < record->nelm; ++i) {
+      auto element = buffer + i * MAX_STRING_SIZE;
+      std::strncpy(element, value[i].c_str(), MAX_STRING_SIZE);
+      // We have to ensure that the string is null-terminated, even if it
+      // exceeds the size allowed by EPICS.
+      element[MAX_STRING_SIZE - 1] = '\0';
+    }
+  }
+
+};
 
 /**
  * Base class for ArrayRecordDeviceSupport. This class implements the code
@@ -83,6 +164,8 @@ public:
       checkFtvl(DBF_FLOAT);
     } else if (this->valueType == typeid(double)) {
       checkFtvl(DBF_DOUBLE);
+    } else if (this->valueType == typeid(std::string)) {
+      checkFtvl(DBF_STRING);
     } else {
       throw std::logic_error(
         std::string("Unexpected value type: ") + valueType.name());
@@ -347,10 +430,8 @@ private:
             << " was expected.";
         throw std::runtime_error(oss.str());
       }
-      std::memcpy(
-        this->record->bptr,
-        value->data(),
-        this->record->nelm * sizeof(T));
+      detail::ArrayRecordBufferHelper<RecordType, T>::writeValue(
+          this->record, *value);
       this->record->nord = this->record->nelm;
       this->updateTimeStamp(this->readVersionNumber);
       return;
@@ -378,9 +459,8 @@ private:
             << " was expected.";
         throw std::runtime_error(oss.str());
       }
-      std::memcpy(this->record->bptr,
-        value->data(),
-        this->record->nelm * sizeof(T));
+      detail::ArrayRecordBufferHelper<RecordType, T>::writeValue(
+          this->record, *value);
       this->record->nord = this->record->nelm;
       this->updateTimeStamp(this->notifyVersionNumber);
       pvSupport->notifyFinished();
@@ -492,12 +572,11 @@ private:
       // record support routine only allocates the memory after initializing the
       // device support, but it will gladly use the memory allocated by us.
       if (!this->record->bptr) {
-        this->record->bptr = new T[this->record->nelm];
+        detail::ArrayRecordBufferHelper<RecordType, T>::initializeBuffer(
+          this->record);
       }
-      std::memcpy(
-        this->record->bptr,
-        value.data(),
-        this->record->nelm * sizeof(T));
+      detail::ArrayRecordBufferHelper<RecordType, T>::writeValue(
+          this->record, value);
       this->record->nord = this->record->nelm;
       // Reset the UDF flag because we now have a valid value.
       this->record->udf = 0;
@@ -528,11 +607,9 @@ private:
     }
 
     // Otherwise, this method is called because a value should be written.
-    std::vector<T> value(this->record->nelm);
-    std::memcpy(
-      value.data(),
-      this->record->bptr,
-      this->record->nelm * sizeof(T));
+    std::vector<T> value(
+        detail::ArrayRecordBufferHelper<RecordType, T>::readValue(
+            this->record));
     // We can safely pass this to the callback because a record device support
     // is never destroyed once successfully constructed.
     auto pvSupport = this->template getPVSupport<T>();

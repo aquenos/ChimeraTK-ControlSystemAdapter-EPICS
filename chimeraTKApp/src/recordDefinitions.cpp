@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2015-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -286,6 +286,20 @@ epicsExportAddress(dset, devLonginChimeraTK);
 auto devLongoutChimeraTK = deviceSupportStruct<::longoutRecord>();
 epicsExportAddress(dset, devLongoutChimeraTK);
 
+#ifdef CHIMERATK_EPICS_LONG_STRING_SUPPORTED
+/**
+ * lsi record type.
+ */
+auto devLsiChimeraTK = deviceSupportStruct<::lsiRecord>();
+epicsExportAddress(dset, devLsiChimeraTK);
+
+/**
+ * lso record type.
+ */
+auto devLsoChimeraTK = deviceSupportStruct<::lsoRecord>();
+epicsExportAddress(dset, devLsoChimeraTK);
+#endif // CHIMERATK_EPICS_LONG_STRING_SUPPORTED
+
 /**
  * mbbi record type.
  */
@@ -309,5 +323,17 @@ epicsExportAddress(dset, devMbboChimeraTK);
  */
 auto devMbboDirectChimeraTK = deviceSupportStruct<::mbboDirectRecord>();
 epicsExportAddress(dset, devMbboDirectChimeraTK);
+
+/**
+ * stringin record type.
+ */
+auto devStringinChimeraTK = deviceSupportStruct<::stringinRecord>();
+epicsExportAddress(dset, devStringinChimeraTK);
+
+/**
+ * stringout record type.
+ */
+auto devStringoutChimeraTK = deviceSupportStruct<::stringoutRecord>();
+epicsExportAddress(dset, devStringoutChimeraTK);
 
 } // extern "C"

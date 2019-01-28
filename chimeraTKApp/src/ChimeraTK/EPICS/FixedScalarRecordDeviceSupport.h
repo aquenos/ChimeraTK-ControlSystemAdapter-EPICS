@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2015-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -112,6 +112,10 @@ public:
           << " elements, but the record needs exactly one element.";
       throw std::invalid_argument(oss.str());
     }
+    if (this->valueType == typeid(std::string)) {
+      throw std::invalid_argument(
+          "This record does not support process variables of type string.");
+    }
   }
 
 protected:
@@ -210,25 +214,66 @@ private:
   /**
    * Helper template for calling the right instantiation of
    * getInterruptInfoInternal for the current value type.
+   *
+   * Due to limitations of the C++ standard, this looks a bit funny. We cannot
+   * have an explicit template specialization inside class scope, so we have to
+   * use a partial template specialization. For this, we need an unused template
+   * parameter, but the callForValueType template function does not compile
+   * correctly when our template has an extra parameter (even though it has a
+   * default value), so we have to declare an alias that only takes a single
+   * template parameter.
    */
-  template<typename T>
-  struct CallGetInterruptInfoInternal {
+  template<typename T, typename Unused = void>
+  struct CallGetInterruptInfoInternalTemplate {
     void operator()(
         FixedScalarRecordDeviceSupport *obj, int command, ::IOSCANPVT *iopvt) {
       obj->template getInterruptInfoInternal<T>(command, iopvt);
     }
   };
 
+  template<typename Unused>
+  struct CallGetInterruptInfoInternalTemplate<std::string, Unused> {
+    void operator()(
+        FixedScalarRecordDeviceSupport *obj, int command, ::IOSCANPVT *iopvt) {
+      throw std::logic_error(std::string(
+          "This record does not support process variables of type string."));
+    }
+  };
+
+  template<typename T>
+  using CallGetInterruptInfoInternal
+      = typename FixedScalarRecordDeviceSupport::CallGetInterruptInfoInternalTemplate<T, void>;
+
   /**
    * Helper template for calling the right instantiation of processInternal for
    * the current value type.
+   *
+   * Due to limitations of the C++ standard, this looks a bit funny. We cannot
+   * have an explicit template specialization inside class scope, so we have to
+   * use a partial template specialization. For this, we need an unused template
+   * parameter, but the callForValueType template function does not compile
+   * correctly when our template has an extra parameter (even though it has a
+   * default value), so we have to declare an alias that only takes a single
+   * template parameter.
    */
-  template<typename T>
-  struct CallProcessInternal {
+  template<typename T, typename Unused = void>
+  struct CallProcessInternalTemplate {
     void operator()(FixedScalarRecordDeviceSupport *obj) {
       obj->template processInternal<T>();
     }
   };
+
+  template<typename Unused>
+  struct CallProcessInternalTemplate<std::string, Unused> {
+    void operator()(FixedScalarRecordDeviceSupport *obj) {
+      throw std::logic_error(std::string(
+          "This record does not support process variables of type string."));
+    }
+  };
+
+  template<typename T>
+  using CallProcessInternal
+      = typename FixedScalarRecordDeviceSupport::CallProcessInternalTemplate<T, void>;
 
   /**
    * Flag indicating whether the record has been set to I/O Intr mode.
@@ -448,24 +493,64 @@ private:
   /**
    * Helper template for calling the right instantiation of initializedValue for
    * the current value type.
+   *
+   * Due to limitations of the C++ standard, this looks a bit funny. We cannot
+   * have an explicit template specialization inside class scope, so we have to
+   * use a partial template specialization. For this, we need an unused template
+   * parameter, but the callForValueType template function does not compile
+   * correctly when our template has an extra parameter (even though it has a
+   * default value), so we have to declare an alias that only takes a single
+   * template parameter.
    */
-  template<typename T>
-  struct CallInitializeValue {
+  template<typename T, typename Unused = void>
+  struct CallInitializeValueTemplate {
     void operator()(FixedScalarRecordDeviceSupport *obj) {
       obj->template initializeValue<T>();
     }
   };
 
+  template<typename Unused>
+  struct CallInitializeValueTemplate<std::string, Unused> {
+    void operator()(FixedScalarRecordDeviceSupport *obj) {
+      throw std::logic_error(std::string(
+          "This record does not support process variables of type string."));
+    }
+  };
+
+  template<typename T>
+  using CallInitializeValue
+      = typename FixedScalarRecordDeviceSupport::CallInitializeValueTemplate<T, void>;
+
   /**
    * Helper template for calling the right instantiation of processInternal for
    * the current value type.
+   *
+   * Due to limitations of the C++ standard, this looks a bit funny. We cannot
+   * have an explicit template specialization inside class scope, so we have to
+   * use a partial template specialization. For this, we need an unused template
+   * parameter, but the callForValueType template function does not compile
+   * correctly when our template has an extra parameter (even though it has a
+   * default value), so we have to declare an alias that only takes a single
+   * template parameter.
    */
-  template<typename T>
-  struct CallProcessInternal {
+  template<typename T, typename Unused = void>
+  struct CallProcessInternalTemplate {
     void operator()(FixedScalarRecordDeviceSupport *obj) {
       obj->template processInternal<T>();
     }
   };
+
+  template<typename Unused>
+  struct CallProcessInternalTemplate<std::string, Unused> {
+    void operator()(FixedScalarRecordDeviceSupport *obj) {
+      throw std::logic_error(std::string(
+          "This record does not support process variables of type string."));
+    }
+  };
+
+  template<typename T>
+  using CallProcessInternal
+      = typename FixedScalarRecordDeviceSupport::CallProcessInternalTemplate<T, void>;
 
   /**
    * Exception that occurred while trying to write a value.

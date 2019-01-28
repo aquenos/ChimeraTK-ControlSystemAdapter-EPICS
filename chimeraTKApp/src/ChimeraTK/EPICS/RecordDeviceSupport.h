@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2015-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -23,6 +23,14 @@
 #include <type_traits>
 
 extern "C" {
+  #include <epicsVersion.h>
+}
+
+#if EPICS_VERSION > 3 || (EPICS_VERSION == 3 && EPICS_REVISION >= 16)
+#  define CHIMERATK_EPICS_LONG_STRING_SUPPORTED 1
+#endif
+
+extern "C" {
 #include <aaiRecord.h>
 #include <aaoRecord.h>
 #include <aiRecord.h>
@@ -31,15 +39,22 @@ extern "C" {
 #include <boRecord.h>
 #include <longinRecord.h>
 #include <longoutRecord.h>
+#ifdef CHIMERATK_EPICS_LONG_STRING_SUPPORTED
+#  include <lsiRecord.h>
+#  include <lsoRecord.h>
+#endif // CHIMERATK_EPICS_LONG_STRING_SUPPORTED
 #include <mbbiRecord.h>
 #include <mbboRecord.h>
 #include <mbbiDirectRecord.h>
 #include <mbboDirectRecord.h>
+#include <stringinRecord.h>
+#include <stringoutRecord.h>
 }
 
 #include "AnalogScalarRecordDeviceSupport.h"
 #include "ArrayRecordDeviceSupport.h"
 #include "FixedScalarRecordDeviceSupport.h"
+#include "StringScalarRecordDeviceSupport.h"
 
 namespace ChimeraTK {
 namespace EPICS {
@@ -99,6 +114,20 @@ struct RecordDeviceSupportTypeHelper<::longoutRecord> {
     FixedScalarRecordDeviceSupport<::longoutRecord, RecordDirection::OUTPUT, RecordValueFieldName::VAL>;
 };
 
+#ifdef CHIMERATK_EPICS_LONG_STRING_SUPPORTED
+template<>
+struct RecordDeviceSupportTypeHelper<::lsiRecord> {
+  using type =
+    StringScalarRecordDeviceSupport<::lsiRecord, RecordDirection::INPUT, true>;
+};
+
+template<>
+struct RecordDeviceSupportTypeHelper<::lsoRecord> {
+  using type =
+    StringScalarRecordDeviceSupport<::lsoRecord, RecordDirection::OUTPUT, true>;
+};
+#endif // CHIMERATK_EPICS_LONG_STRING_SUPPORTED
+
 template<>
 struct RecordDeviceSupportTypeHelper<::mbbiDirectRecord> {
   using type =
@@ -121,6 +150,18 @@ template<>
 struct RecordDeviceSupportTypeHelper<::mbboRecord> {
   using type =
     FixedScalarRecordDeviceSupport<::mbboRecord, RecordDirection::OUTPUT, RecordValueFieldName::RVAL>;
+};
+
+template<>
+struct RecordDeviceSupportTypeHelper<::stringinRecord> {
+  using type =
+    StringScalarRecordDeviceSupport<::stringinRecord, RecordDirection::INPUT, false>;
+};
+
+template<>
+struct RecordDeviceSupportTypeHelper<::stringoutRecord> {
+  using type =
+    StringScalarRecordDeviceSupport<::stringoutRecord, RecordDirection::OUTPUT, false>;
 };
 
 /**

@@ -1,0 +1,2 @@
+device(lsi,INST_IO,devLsiChimeraTK,"ChimeraTK")
+device(lso,INST_IO,devLsoChimeraTK,"ChimeraTK")

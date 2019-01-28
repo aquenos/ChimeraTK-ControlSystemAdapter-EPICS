@@ -171,6 +171,26 @@ record(mbboDirect, "$(P)$(R)MbboDirect:Int") {
   field(OUT,  "@$(DEV) INT")
 }
 
+# Registers can also be mapped to string records. This can be useful if the
+# underlying register type is not directly supported by the EPICS device
+# support, but ChimeraTK Device Access knows how to convert to and from strings.
+# For string records, you typically have to explicitly specify the data type for
+# the register ("string") as part of the address.
+# In additition to the stringin and stringout record, the lsi and lso are
+# supported when using a sufficiently recent release of EPICS Base. This is
+# useful when the strings are too long to fit into the 39 characters that are
+# allowed by the stringin and stringout record.
+record(stringin, "$(P)$(R)Stringin:Int") {
+  field(DTYP, "ChimeraTK")
+  field(INP,  "@$(DEV) INT string")
+  field(SCAN, ".1 second")
+}
+
+record(stringout, "$(P)$(R)Stringout:Int") {
+  field(DTYP, "ChimeraTK")
+  field(OUT,  "@$(DEV) INT string")
+}
+
 # Registers that represent arrays can be accessed as well. The aai and aao
 # records must be used for that purpose and the number of elements in the record
 # must exactly match the number of elements in the register. The data types must

@@ -186,8 +186,15 @@ EPICS Records
 -------------
 
 This device support supports the `aai`, `aao`, `ai`, `ao`, `bi`, `bo`, `longin`,
-`longout`, `mbbi`, `mbbo`, `mbbiDirect`, and `mbboDirect` records. The `DTYP` is
-`ChimeraTK` for all record types.
+`longout`, `mbbi`, `mbbo`, `mbbiDirect`, `mbboDirect`, `stringin`, and `stringout`
+records. When using EPICS Base 3.16 or newer, the `lsi` and `lso` records are
+supported as well.
+
+The `DTYP` is `ChimeraTK` for all record types.
+
+Please note that the numeric records only work with process variables of a
+numeric type and the string records only work with process variables of type
+`string`.
 
 ### Addresses
 
@@ -205,7 +212,7 @@ process variables or registers exist.
 The *data-type* is optional and specifies the data type of the underlying
 process variable or register. In most cases, the best data-type is detected
 automatically. If explicitly specified, the data type must be `int8`, `uint8`,
-`int16`, `uint16`, `int32`, `uint32`, `float`, or `double`.
+`int16`, `uint16`, `int32`, `uint32`, `float`, `double`, or `string`.
 
 ### Limitations
 
@@ -219,6 +226,21 @@ When using a ChimeraTK Device Access, this can be achieved by explicitly
 specifying the data type as part of the address. When using the ChimeraTK
 Control System Adapter, the data type of the PV is fixed and thus the record's
 data type must be set to match it.
+
+#### `lsi` and `lso` record
+
+The `lsi` and `lso` record are only supported when using EPICS Base 3.16 or
+newer. They only work with process variables of type `string`.
+
+#### `stringin` and `stringout` record
+
+The `stringin` and `stringout` record only work with process variables of type
+`string` and truncate long strings to 39 characters.
+
+#### Numeric records
+
+All numeric records (this means all records except `aai`, `aao`, `lsi`, `lso`,
+`stringin`, and `stringout`) do not support process variables of type `string`.
 
 #### ChimeraTK Control System Adapter
 
@@ -252,12 +274,12 @@ Device Access is still experimental. Another reason is that many device backends
 yet, so supporting them in the device support would be of limited use.
 
 This device support only supports the data types listed in the section called
-*Addresses*. In particular, it does not support registers that provide strings
-or 64 bit integers, unless these registers can also be accessed using one of the
-supported data types. For non-numeric registers, the data type cannot be
-detected automatically, even if they can be treated as numeric registers. In
-this case, one of the supported data types has to be specified explicitly as
-part of the register address specified in the record's `INP` or `OUT` field.
+*Addresses*. In particular, it does not support registers that provide 64 bit
+integers, unless these registers can also be accessed using one of the supported
+data types. For non-numeric registers, the data type cannot be detected
+automatically, even if they can be treated as numeric registers. In this case,
+one of the supported data types has to be specified explicitly as part of the
+register address specified in the record's `INP` or `OUT` field.
 
 
 Examples

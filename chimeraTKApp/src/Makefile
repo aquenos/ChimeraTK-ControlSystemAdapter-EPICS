@@ -15,6 +15,11 @@ LIBRARY_IOC += ChimeraTK-ControlSystemAdapter-EPICS
 # install chimeraTK.dbd into <top>/dbd
 DBD += ChimeraTK-ControlSystemAdapter-EPICS.dbd
 
+ChimeraTK-ControlSystemAdapter-EPICS_DBD += common.dbd
+ifdef BASE_3_16
+ChimeraTK-ControlSystemAdapter-EPICS_DBD += longString.dbd
+endif
+
 # specify all source files to be compiled and added to the library
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += ControlSystemAdapterPVProvider.cpp
 ChimeraTK-ControlSystemAdapter-EPICS_SRCS += DeviceAccessPVProvider.cpp

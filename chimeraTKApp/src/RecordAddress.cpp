@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <sstream>
+#include <string>
 #include <utility>
 
 #include "ChimeraTK/EPICS/RecordAddress.h"
@@ -200,6 +201,8 @@ private:
       return typeid(float);
     } else if (accept("double")) {
       return typeid(double);
+    } else if (accept("string")) {
+      return typeid(std::string);
     } else {
       throwException(std::string("Expected type specifier, but found \"")
         + excerpt() + "\".");

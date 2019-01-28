@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2015-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -104,6 +104,8 @@ protected:
       return F<float>()();
     } else if (this->valueType == typeid(double)) {
       return F<double>()();
+    } else if (this->valueType == typeid(std::string)) {
+      return F<std::string>()();
     } else {
       throw std::logic_error(
         std::string("Unexpected value type: ") + valueType.name());
@@ -140,6 +142,8 @@ protected:
       return F<float>()(std::forward<Args>(args)...);
     } else if (this->valueType == typeid(double)) {
       return F<double>()(std::forward<Args>(args)...);
+    } else if (this->valueType == typeid(std::string)) {
+      return F<std::string>()(std::forward<Args>(args)...);
     } else {
       throw std::logic_error(
         std::string("Unexpected value type: ") + valueType.name());
