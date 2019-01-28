@@ -251,7 +251,6 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
       for (auto &callback : callbacks) {
         try {
           callback(value, versionNumber);
-          return;
         } catch (std::exception &e) {
           errorPrintf(
             "A notification callback threw an exception. This indicates a bug in the record device support code. The exception message was: %s",
