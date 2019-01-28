@@ -27,8 +27,10 @@ extern "C" {
 #include <epicsTime.h>
 
 extern "C" {
+#include <alarm.h>
 #include <devSup.h>
 #include <epicsExport.h>
+#include <recGbl.h>
 }
 
 #include "ChimeraTK/EPICS/RecordDeviceSupport.h"
@@ -53,6 +55,20 @@ inline long getInitSuccessStatusCode<::aoRecord>(::aoRecord *record) {
   RecordDeviceSupport<::aoRecord> *deviceSupport =
       static_cast<RecordDeviceSupport<::aoRecord> *>(record->dpvt);
   return deviceSupport->isNoConvert() ? 2 : 0;
+}
+
+/**
+ * Returns the alarm status code that shall be set (together with a severity of
+ * INVALID_ALARM) when processing of a record fails due to an exception.
+ */
+template<typename RecordType>
+epicsEnum16 getProcessErrorAlarmStatus() {
+  switch (RecordDeviceSupportTraits<RecordType>::direction) {
+  case RecordDirection::INPUT:
+    return READ_ALARM;
+  case RecordDirection::OUTPUT:
+    return WRITE_ALARM;
+  }
 }
 
 /**
@@ -150,9 +166,11 @@ long processRecord(void *recordAsVoid) {
     deviceSupport->process();
   } catch (std::exception const & e) {
     errorPrintf("%s Record processing failed: %s", record->name, e.what());
+    recGblSetSevr(record, getProcessErrorAlarmStatus<RecordType>(), INVALID_ALARM);
     return -1;
   } catch (...) {
     errorPrintf("%s Record processing failed: Unknown error.", record->name);
+    recGblSetSevr(record, getProcessErrorAlarmStatus<RecordType>(), INVALID_ALARM);
     return -1;
   }
   return getProcessSuccessStatusCode<RecordType>(record);
