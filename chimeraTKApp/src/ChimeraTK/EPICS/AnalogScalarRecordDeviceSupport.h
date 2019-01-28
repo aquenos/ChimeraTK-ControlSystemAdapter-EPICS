@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2015-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -130,7 +130,7 @@ protected:
  * The template parameters are the record's data-structure type and the direction
  * of the record (input or output).
  */
-template<typename RecordType, RecordDirection Direction>
+template<typename RecordType, RecordDirection Direction = detectRecordDirection<RecordType>()>
 class AnalogScalarRecordDeviceSupport;
 
 // Template specialization for input records.

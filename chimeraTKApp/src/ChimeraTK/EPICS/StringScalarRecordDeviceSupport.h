@@ -45,6 +45,17 @@ namespace EPICS {
 namespace detail {
 
 /**
+ * Helper template struct for detecting whether a record type has a SIZV field.
+ *
+ * The template parameter is the record type to be tested.
+ */
+template<typename RecordType, typename = void>
+struct DetectRecordSizvFieldHelper : std::false_type {};
+
+template<typename RecordType>
+struct DetectRecordSizvFieldHelper<RecordType, ToVoid<decltype(std::declval<RecordType>().sizv)>> : std::true_type {};
+
+/**
  * Helper structure for writing a string to a record's VAL field.
  *
  * This structure uses different code depending on whether the record has
@@ -183,7 +194,7 @@ protected:
  * of the record (input or output), and a flag indicating whether the record has
  * a SIZV and LEN field (variable string size).
  */
-template<typename RecordType, RecordDirection Direction, bool HasSizvField>
+template<typename RecordType, RecordDirection Direction = detectRecordDirection<RecordType>(), bool HasSizvField = detail::DetectRecordSizvFieldHelper<RecordType>::value>
 class StringScalarRecordDeviceSupport;
 
 // Template specialization for input records.

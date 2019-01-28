@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -40,6 +40,34 @@ enum RecordValueFieldName {
   VAL
 
 };
+
+namespace detail {
+
+/**
+ * Helper template struct for detecting whether a record type has an RVAL field.
+ *
+ * The template parameter is the record type to be tested.
+ */
+template<typename RecordType, typename = void>
+struct DetectRecordValueFieldNameHelper {
+  static constexpr RecordValueFieldName value = RecordValueFieldName::VAL;
+};
+
+template<typename RecordType>
+struct DetectRecordValueFieldNameHelper<RecordType, ToVoid<decltype(std::declval<RecordType>().rval)>> {
+  static constexpr RecordValueFieldName value = RecordValueFieldName::RVAL;
+};
+
+} // namespace detail
+
+/**
+ * Returns the value field name for the specified record. The return val is RVAL
+ * if the record has an RVAL field and VAL, if it does not.
+ */
+template<typename RecordType>
+constexpr RecordValueFieldName detectRecordValueFieldName() {
+  return detail::DetectRecordValueFieldNameHelper<RecordType>::value;
+}
 
 } // namespace EPICS
 } // namespace ChimeraTK

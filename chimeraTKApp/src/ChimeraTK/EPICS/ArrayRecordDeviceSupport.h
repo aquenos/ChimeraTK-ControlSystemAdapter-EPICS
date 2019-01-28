@@ -235,7 +235,7 @@ private:
  * The template parameters are the record's data-structure type and the direction
  * of the record (input or output).
  */
-template<typename RecordType, RecordDirection Direction>
+template<typename RecordType, RecordDirection Direction = detectRecordDirection<RecordType>()>
 class ArrayRecordDeviceSupport;
 
 // Template specialization for input records.

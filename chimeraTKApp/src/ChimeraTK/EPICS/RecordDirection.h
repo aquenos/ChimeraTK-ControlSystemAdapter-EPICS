@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2018 aquenos GmbH
+ * Copyright 2015-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -19,6 +19,8 @@
 
 #ifndef CHIMERATK_EPICS_RECORD_DIRECTION_H
 #define CHIMERATK_EPICS_RECORD_DIRECTION_H
+
+#include "detail/ToVoid.h"
 
 namespace ChimeraTK {
 namespace EPICS {
@@ -39,6 +41,38 @@ enum class RecordDirection {
   OUTPUT
 
 };
+
+namespace detail {
+
+/**
+ * Helper template struct for detecting whether a record type represents an
+ * input or output record.
+ *
+ * The template parameter is the record type to be tested.
+ */
+template<typename RecordType, typename = void>
+struct DetectRecordDirectionHelper {};
+
+template<typename RecordType>
+struct DetectRecordDirectionHelper<RecordType, ToVoid<decltype(std::declval<RecordType>().inp)>> {
+  static constexpr RecordDirection value = RecordDirection::INPUT;
+};
+
+template<typename RecordType>
+struct DetectRecordDirectionHelper<RecordType, ToVoid<decltype(std::declval<RecordType>().out)>> {
+  static constexpr RecordDirection value = RecordDirection::OUTPUT;
+};
+
+} // namespace detail
+
+/**
+ * Returns the direction for the given record type. This is used to
+ * automatically select the correct device support code for a record.
+ */
+template<typename RecordType>
+constexpr RecordDirection detectRecordDirection() {
+  return detail::DetectRecordDirectionHelper<RecordType>::value;
+}
 
 } // namespace EPICS
 } // namespace ChimeraTK

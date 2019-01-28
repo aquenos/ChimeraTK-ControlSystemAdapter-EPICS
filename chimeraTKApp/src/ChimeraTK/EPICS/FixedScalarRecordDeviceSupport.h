@@ -164,7 +164,7 @@ protected:
  * of the record (input or output), and the name of the record's field that is
  * supposed to be accessed by the device support (RVAL or VAL).
  */
-template<typename RecordType, RecordDirection Direction, RecordValueFieldName ValueFieldName>
+template<typename RecordType, RecordDirection Direction = detectRecordDirection<RecordType>(), RecordValueFieldName ValueFieldName = detectRecordValueFieldName<RecordType>()>
 class FixedScalarRecordDeviceSupport;
 
 // Template specialization for input records.

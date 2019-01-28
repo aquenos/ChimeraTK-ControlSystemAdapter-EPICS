@@ -55,6 +55,7 @@ extern "C" {
 #include "ArrayRecordDeviceSupport.h"
 #include "FixedScalarRecordDeviceSupport.h"
 #include "StringScalarRecordDeviceSupport.h"
+#include "detail/ToVoid.h"
 
 namespace ChimeraTK {
 namespace EPICS {
@@ -72,114 +73,97 @@ struct RecordDeviceSupportTypeHelper;
 
 template<>
 struct RecordDeviceSupportTypeHelper<::aaiRecord> {
-  using type = ArrayRecordDeviceSupport<::aaiRecord, RecordDirection::INPUT>;
+  using type = ArrayRecordDeviceSupport<::aaiRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::aaoRecord> {
-  using type = ArrayRecordDeviceSupport<::aaoRecord, RecordDirection::OUTPUT>;
+  using type = ArrayRecordDeviceSupport<::aaoRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::aiRecord> {
-  using type = AnalogScalarRecordDeviceSupport<::aiRecord, RecordDirection::INPUT>;
+  using type = AnalogScalarRecordDeviceSupport<::aiRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::aoRecord> {
-  using type = AnalogScalarRecordDeviceSupport<::aoRecord, RecordDirection::OUTPUT>;
+  using type = AnalogScalarRecordDeviceSupport<::aoRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::biRecord> {
   using type =
-    FixedScalarRecordDeviceSupport<::biRecord, RecordDirection::INPUT, RecordValueFieldName::RVAL>;
+    FixedScalarRecordDeviceSupport<::biRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::boRecord> {
   using type =
-    FixedScalarRecordDeviceSupport<::boRecord, RecordDirection::OUTPUT, RecordValueFieldName::RVAL>;
+    FixedScalarRecordDeviceSupport<::boRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::longinRecord> {
   using type =
-    FixedScalarRecordDeviceSupport<::longinRecord, RecordDirection::INPUT, RecordValueFieldName::VAL>;
+    FixedScalarRecordDeviceSupport<::longinRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::longoutRecord> {
   using type =
-    FixedScalarRecordDeviceSupport<::longoutRecord, RecordDirection::OUTPUT, RecordValueFieldName::VAL>;
+    FixedScalarRecordDeviceSupport<::longoutRecord>;
 };
 
 #ifdef CHIMERATK_EPICS_LONG_STRING_SUPPORTED
 template<>
 struct RecordDeviceSupportTypeHelper<::lsiRecord> {
   using type =
-    StringScalarRecordDeviceSupport<::lsiRecord, RecordDirection::INPUT, true>;
+    StringScalarRecordDeviceSupport<::lsiRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::lsoRecord> {
   using type =
-    StringScalarRecordDeviceSupport<::lsoRecord, RecordDirection::OUTPUT, true>;
+    StringScalarRecordDeviceSupport<::lsoRecord>;
 };
 #endif // CHIMERATK_EPICS_LONG_STRING_SUPPORTED
 
 template<>
 struct RecordDeviceSupportTypeHelper<::mbbiDirectRecord> {
   using type =
-    FixedScalarRecordDeviceSupport<::mbbiDirectRecord, RecordDirection::INPUT, RecordValueFieldName::RVAL>;
+    FixedScalarRecordDeviceSupport<::mbbiDirectRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::mbbiRecord> {
   using type =
-    FixedScalarRecordDeviceSupport<::mbbiRecord, RecordDirection::INPUT, RecordValueFieldName::RVAL>;
+    FixedScalarRecordDeviceSupport<::mbbiRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::mbboDirectRecord> {
   using type =
-    FixedScalarRecordDeviceSupport<::mbboDirectRecord, RecordDirection::OUTPUT, RecordValueFieldName::RVAL>;
+    FixedScalarRecordDeviceSupport<::mbboDirectRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::mbboRecord> {
   using type =
-    FixedScalarRecordDeviceSupport<::mbboRecord, RecordDirection::OUTPUT, RecordValueFieldName::RVAL>;
+    FixedScalarRecordDeviceSupport<::mbboRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::stringinRecord> {
   using type =
-    StringScalarRecordDeviceSupport<::stringinRecord, RecordDirection::INPUT, false>;
+    StringScalarRecordDeviceSupport<::stringinRecord>;
 };
 
 template<>
 struct RecordDeviceSupportTypeHelper<::stringoutRecord> {
   using type =
-    StringScalarRecordDeviceSupport<::stringoutRecord, RecordDirection::OUTPUT, false>;
+    StringScalarRecordDeviceSupport<::stringoutRecord>;
 };
-
-/**
- * Helper template struct for the ToVoid template using declaration.
- */
-template<typename>
-struct ToVoidHelper {
-  using type = void;
-};
-
-/**
- * Resolves to the void type for all template parameters. The trick is that this
- * allows us to use decltype in a template parameter and know that this template
- * parameter is going to be void exactly if the decltype expression is actually
- * valid, regardless of which type it produces.
- */
-template<typename T>
-using ToVoid = typename ToVoidHelper<T>::type;
 
 /**
  * Helper template struct for detecting whether a type has a getInterruptInfo
@@ -231,6 +215,11 @@ using RecordDeviceSupport =
  */
 template<typename RecordType>
 struct RecordDeviceSupportTraits {
+
+  /**
+   * Tells whether the device support is for an input or an output record.
+   */
+  static RecordDirection const direction = detectRecordDirection<RecordType>();
 
   /**
    * Tells whether the device support class has a getInterruptInfo(...) method.
