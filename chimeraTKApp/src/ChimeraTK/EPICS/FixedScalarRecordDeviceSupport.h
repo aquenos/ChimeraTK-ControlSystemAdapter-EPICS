@@ -241,8 +241,8 @@ private:
   };
 
   template<typename T>
-  using CallGetInterruptInfoInternal
-      = typename FixedScalarRecordDeviceSupport::CallGetInterruptInfoInternalTemplate<T, void>;
+  struct CallGetInterruptInfoInternal
+      : CallGetInterruptInfoInternalTemplate<T, void> {};
 
   /**
    * Helper template for calling the right instantiation of processInternal for
@@ -272,8 +272,8 @@ private:
   };
 
   template<typename T>
-  using CallProcessInternal
-      = typename FixedScalarRecordDeviceSupport::CallProcessInternalTemplate<T, void>;
+  struct CallProcessInternal
+      : CallProcessInternalTemplate<T, void> {};
 
   /**
    * Flag indicating whether the record has been set to I/O Intr mode.
@@ -518,8 +518,8 @@ private:
   };
 
   template<typename T>
-  using CallInitializeValue
-      = typename FixedScalarRecordDeviceSupport::CallInitializeValueTemplate<T, void>;
+  struct CallInitializeValue
+      : CallInitializeValueTemplate<T, void> {};
 
   /**
    * Helper template for calling the right instantiation of processInternal for
@@ -549,8 +549,8 @@ private:
   };
 
   template<typename T>
-  using CallProcessInternal
-      = typename FixedScalarRecordDeviceSupport::CallProcessInternalTemplate<T, void>;
+  struct CallProcessInternal
+      : CallProcessInternalTemplate<T, void> {};
 
   /**
    * Exception that occurred while trying to write a value.
