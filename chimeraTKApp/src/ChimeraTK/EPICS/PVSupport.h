@@ -2,7 +2,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -196,11 +196,7 @@ public:
    * try to transfer a new value from the backing implementation and might
    * simply use the latest known values instead.
    *
-   * In summary, this method should only be used to initialize output records,
-   * and it should not be used after registering a notification callack or
-   * calling read(...). This includes performing these actions on other
-   * instances if this type because different instances might actually be backed
-   * by a shared instance when they refer to the same process variable.
+   * In summary, this method should only be used to initialize output records.
    *
    * This method throws an exception when the implementation cannot provide an
    * initial value for the respective process variable.

@@ -257,15 +257,15 @@ private:
   friend class ControlSystemAdapterPVSupport<T>;
 
   /**
-   * Version number / time stamp belonging to the value stored in lastValueRead.
+   * Version number / time stamp belonging to the value stored in lastValue.
    */
-  VersionNumber lastVersionNumberRead;
+  VersionNumber lastVersionNumber;
 
   /**
-   * Last value that his been read. This value might have been read by the
-   * doNotify() or the read(...) method.
+   * Last value that his been read or written. This value might have been read by the
+   * doNotify() or the read(...) method or written by the write(...) method.
    */
-  std::shared_ptr<Value const> lastValueRead;
+  std::shared_ptr<Value const> lastValue;
 
   /**
    * Flag indicating whether the initial value is still available. This flag is

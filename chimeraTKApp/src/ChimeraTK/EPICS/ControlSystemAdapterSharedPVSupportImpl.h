@@ -81,12 +81,13 @@ std::size_t ControlSystemAdapterSharedPVSupport<T>::getNumberOfElements() {
 template<typename T>
 std::tuple<typename PVSupport<T>::Value, VersionNumber> ControlSystemAdapterSharedPVSupport<T>::initialValue() {
   std::lock_guard<std::recursive_mutex> lock(this->mutex);
-  if (!this->initialValueAvailable) {
-    throw std::runtime_error("The initial value is not available any longer.");
+  if (this->initialValueAvailable) {
+    return std::make_tuple(
+      this->processArray->accessChannel(0),
+      this->processArray->getVersionNumber());
+  } else {
+    return std::make_tuple(*(this->lastValue), this->lastVersionNumber);
   }
-  return std::make_tuple(
-    this->processArray->accessChannel(0),
-    this->processArray->getVersionNumber());
 }
 
 template<typename T>
@@ -102,8 +103,8 @@ template<typename T>
 bool ControlSystemAdapterSharedPVSupport<T>::read(
     ReadCallback const &successCallback,
     ErrorCallback const &errorCallback) {
-  decltype(this->lastValueRead) lastValue;
-  VersionNumber lastVersionNumber;
+  decltype(this->lastValue) value;
+  VersionNumber versionNumber;
   try {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
     // If this process variable uses notifications, we do not actually read a
@@ -115,12 +116,13 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
         auto newValue = std::make_shared<std::vector<T>>(
             this->processArray->getNumberOfSamples());
         std::swap(*newValue, this->processArray->accessChannel(0));
-        this->lastValueRead = newValue;
-        this->lastVersionNumberRead = this->processArray->getVersionNumber();
+        this->lastValue = newValue;
+        this->lastVersionNumber = this->processArray->getVersionNumber();
+        this->initialValueAvailable = false;
       }
     }
-    lastValue = this->lastValueRead;
-    lastVersionNumber = this->lastVersionNumberRead;
+    value = this->lastValue;
+    versionNumber = this->lastVersionNumber;
   } catch (...) {
     if (errorCallback) {
       errorCallback(true, std::current_exception());
@@ -129,7 +131,7 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
     return true;
   }
   if (successCallback) {
-    successCallback(true, lastValue, lastVersionNumber);
+    successCallback(true, value, versionNumber);
   }
   return true;
 }
@@ -160,7 +162,17 @@ bool ControlSystemAdapterSharedPVSupport<T>::write(
     auto &destination = this->processArray->accessChannel(0);
     std::swap(destination, value);
     this->initialValueAvailable = false;
-    this->processArray->write();
+    VersionNumber versionNumber;
+    this->processArray->write(versionNumber);
+    // We also update the last value and version number, so that if another
+    // record reads the value, it gets the updated version. We can swap here
+    // because once we have started the write operation, the value inside the
+    // process variable is not going to be used any longer.
+    auto sharedValue = std::make_shared<std::vector<T>>(
+        this->processArray->getNumberOfSamples());
+    std::swap(*sharedValue, this->processArray->accessChannel(0));
+    this->lastValue = sharedValue;
+    this->lastVersionNumber = versionNumber;
   } catch (...) {
     if (errorCallback) {
       errorCallback(true, std::current_exception());
@@ -191,8 +203,8 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
   auto newValue = std::make_shared<std::vector<T>>(
     this->processArray->getNumberOfSamples());
   std::swap(*newValue, this->processArray->accessChannel(0));
-  this->lastValueRead = newValue;
-  this->lastVersionNumberRead = this->processArray->getVersionNumber();
+  this->lastValue = newValue;
+  this->lastVersionNumber = this->processArray->getVersionNumber();
   this->initialValueAvailable = false;
   // If there are no notify callbacks, we are done.
   if (this->notifyCallbackCount == 0) {
@@ -230,8 +242,8 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
       --this->notificationPendingCount;
     }
   }
-  auto &value = this->lastValueRead;
-  auto &versionNumber = this->lastVersionNumberRead;
+  auto &value = this->lastValue;
+  auto &versionNumber = this->lastVersionNumber;
   return [value, versionNumber, callbacks = std::move(callbacks)](){
       for (auto &callback : callbacks) {
         try {
