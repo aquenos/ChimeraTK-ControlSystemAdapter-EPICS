@@ -195,7 +195,9 @@ private:
 
   /**
    * Schedules the passed PV support's doNotify() method to be called by the
-   * notification thread.
+   * notification thread, if there are pending notifications. The PV support
+   * uses this method to notify the PV provider that it has finished processing
+   * a notification and is ready to receive the next one.
    *
    * The code calling this method must hold a lock on the mutex.
    */

@@ -193,6 +193,18 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
     notificationQueue = cppext::when_any(
             pvNotificationQueues.begin(), pvNotificationQueues.end());
   }
+  // TODO Document
+  // When we receive a notification for a PV for which the last notification has
+  // not been completely handled yet, we have to receive the updated value at a
+  // later point in time. We must not receive more updates than we have been
+  // notified of. Otherwise there would be notifications inside the notification
+  // queue for value updates that have already been processed and the
+  // notification queue could run out of space if more updates are pushed before
+  // the notifications have been removed from the notification queue.
+  // Therefore, we keep track of how many notifications we received for each PV
+  // that have not been processed yet and only receive that number of value
+  // updates.
+  std::vector<std::size_t> numberOfPendingUpdatesForPV(wakeUpQueueIndex, 0);
   // We cannot check the abort condition here because we have to hold a lock on
   // the mutex while checking the condition.
   while (true) {
@@ -217,24 +229,26 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
         std::shared_ptr<ControlSystemAdapterSharedPVSupportBase> sharedPVSupport(
             std::move(this->pendingCallNotify.front()));
         this->pendingCallNotify.pop_front();
-        if (sharedPVSupport->readyForNextNotification()) {
-          // We have to check whether a new value is available for the PV. There
-          // could be a new value available, for which we already consume the
-          // notification, but did not notify the PV support because it was not
-          // finished with handling the last notification.
+        // Please note that we do not use the variable pvIndex here. The value
+        // of that variable must be preserved because we use it later when
+        // processing notifications from the notificationQueue.
+        std::size_t pendingPVIndex = sharedPVSupport->getIndex();
+        if (sharedPVSupport->readyForNextNotification()
+            && numberOfPendingUpdatesForPV[pendingPVIndex]) {
+          --numberOfPendingUpdatesForPV[pendingPVIndex];
           try {
-            // Please note that we do not use the variable pvIndex here. The
-            // value of that variable must be preserved because we use it later
-            // when processing notifications from the notificationQueue.
             if (ChimeraTK::detail::getFutureQueueFromTransferFuture(
-                    pvsForNotification[sharedPVSupport->getIndex()]
-                        ->readAsync()).pop()) {
+                    pvsForNotification[pendingPVIndex]->readAsync()).pop()) {
               // Whenever pop() was successful, we also have to call postRead().
-              pvsForNotification[sharedPVSupport->getIndex()]->postRead();
+              pvsForNotification[pendingPVIndex]->postRead();
               auto notifyFunction = sharedPVSupport->doNotify();
               if (notifyFunction) {
                 notifyFunctions.push_front(std::move(notifyFunction));
               }
+            } else {
+              // If there are less value updates than notifications, something
+              // is seriously wrong.
+              assert(false);
             }
           } catch (ChimeraTK::detail::DiscardValueException &) {
             // We can simply ignore such an exception - it only means that we
@@ -278,11 +292,7 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
           }
           continue;
         }
-        if (sharedPVSupport && sharedPVSupport->readyForNextNotification()) {
-          // We have to receive the new value. It could happen that no such
-          // value is actually available, because we already read it from the
-          // queue for the PV. This is not an error and we can simply ignore
-          // such a notification.
+        if (sharedPVSupport->readyForNextNotification()) {
           try {
             if (ChimeraTK::detail::getFutureQueueFromTransferFuture(
                     pvsForNotification[pvIndex]->readAsync()).pop()) {
@@ -292,12 +302,22 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
               if (notifyFunction) {
                 notifyFunctions.push_front(std::move(notifyFunction));
               }
+            } else {
+              // If there are less value updates than notifications, something
+              // is seriously wrong.
+              assert(false);
             }
           } catch (ChimeraTK::detail::DiscardValueException &) {
             // We can simply ignore such an exception - it only means that we
             // did not actually receive a new value - so we do not have to
             // notify the PV support.
           }
+        } else {
+          // We received a notification for a value update, but we are not ready
+          // to process this update yet. We have to remember that we received a
+          // notification so that we can receive the updated value as soon as we
+          // are ready.
+          ++numberOfPendingUpdatesForPV[pvIndex];
         }
       } while (numberOfPVsWithEvent < 1000 && notificationQueue.pop(pvIndex));
     }
