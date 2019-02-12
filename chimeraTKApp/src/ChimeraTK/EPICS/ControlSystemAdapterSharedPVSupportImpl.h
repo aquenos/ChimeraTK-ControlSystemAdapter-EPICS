@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -40,15 +40,24 @@ namespace EPICS {
 template<typename T>
 ControlSystemAdapterSharedPVSupport<T>::ControlSystemAdapterSharedPVSupport(
     ControlSystemAdapterPVProvider::SharedPtr const &pvProvider,
-    std::string const &name)
-    : alreadyReadNewValue(false), initialValueAvailable(true),
-      mutex(pvProvider->mutex), name(name), notificationPendingCount(0),
-      notifyCallbackCount(0), pvProvider(pvProvider) {
+    std::string const &name, std::size_t index)
+    : ControlSystemAdapterSharedPVSupportBase(index),
+      initialValueAvailable(true), mutex(pvProvider->mutex), name(name),
+      notificationPendingCount(0), notifyCallbackCount(0),
+      pvProvider(pvProvider) {
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
     this->processArray = this->pvProvider->pvManager
       ->template getProcessArray<T>(name);
   }
+}
+
+template<typename T>
+bool ControlSystemAdapterSharedPVSupport<T>::canNotify() {
+  std::lock_guard<std::recursive_mutex> lock(this->mutex);
+  return this->processArray->isReadable()
+      && this->processArray->getAccessModeFlags().has(
+          AccessMode::wait_for_new_data);
 }
 
 template<typename T>
@@ -97,32 +106,21 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
   VersionNumber lastVersionNumber;
   try {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
-    // If the last notification has finished, we can try to read a new value.
-    // Otherwise, we have to reuse the last one.
-    if (this->notificationPendingCount == 0 && !this->alreadyReadNewValue) {
-      // By calling readNonBlocking(), we make the next value available. If
-      // there is a newer value, readNonBlocking() returns true and we get that
-      // value. Otherwise we reuse the last value.
-      // If we have never read a value, but no (new) value is available yet, we
-      // use the initial value.
-      if (this->processArray->readNonBlocking() || !this->lastValueRead) {
-        this->initialValueAvailable = false;
-        // We have to remember that we already read a new value. Otherwise, we
-        // would overwrite this value when doNotify() or this method are called
-        // again.
-        this->alreadyReadNewValue = true;
+    // If this process variable uses notifications, we do not actually read a
+    // value but simply use the value that has been received through the last
+    // notification. Otherwise, we read the most recent value.
+    if (!this->processArray->getAccessModeFlags().has(AccessMode::wait_for_new_data)) {
+      if (this->processArray->readLatest()) {
         // The logic here is the same as in doNotify().
         auto newValue = std::make_shared<std::vector<T>>(
-          this->processArray->getNumberOfSamples());
+            this->processArray->getNumberOfSamples());
         std::swap(*newValue, this->processArray->accessChannel(0));
         this->lastValueRead = newValue;
         this->lastVersionNumberRead = this->processArray->getVersionNumber();
-        this->pvProvider->scheduleCallNotify(this->shared_from_this());
       }
     }
     lastValue = this->lastValueRead;
     lastVersionNumber = this->lastVersionNumberRead;
-
   } catch (...) {
     if (errorCallback) {
       errorCallback(true, std::current_exception());
@@ -186,24 +184,6 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
   // We only use an assertion here because this method is only called by code
   // that is within the control of this module.
   assert(notificationPendingCount == 0);
-  // If there are no notify callbacks, we do not read the next value. This has
-  // the effect that the next value can be "pulled" from the FIFO by calling
-  // read(...). If we read the value here, code repeatedly calling read(...)
-  // might miss values.
-  if (this->notifyCallbackCount == 0) {
-    this->alreadyReadNewValue = false;
-    return std::function<void()>();
-  }
-  // By calling readNonBlocking(), we make the next value available. If there
-  // is no newer value, readNonBlocking() returns false and we do not have to
-  // notify anyone.
-  // We only call readNonBlocking() if we do not already have a new value (that
-  // has been read by the read(...) method).
-  if (!this->alreadyReadNewValue && !this->processArray->readNonBlocking()) {
-    return std::function<void()>();
-  }
-  this->alreadyReadNewValue = false;
-  this->initialValueAvailable = false;
   // We are going to swap the vectors because this is more efficient than
   // copying (in particular if the vectors have many elements). We have to
   // make our vector the same size as the vector used by the ProcessArray, or
@@ -213,6 +193,11 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
   std::swap(*newValue, this->processArray->accessChannel(0));
   this->lastValueRead = newValue;
   this->lastVersionNumberRead = this->processArray->getVersionNumber();
+  this->initialValueAvailable = false;
+  // If there are no notify callbacks, we are done.
+  if (this->notifyCallbackCount == 0) {
+    return std::function<void()>();
+  }
   // We have to make a copy of the list of PV supports because we want to
   // release the mutex before actually notifying them. While creating this
   // copy, we convert from weak to shared pointers and remove weak pointers

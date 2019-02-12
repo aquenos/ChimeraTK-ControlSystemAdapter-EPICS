@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -20,6 +20,7 @@
 #ifndef CHIMERATK_EPICS_CONTROL_SYSTEM_ADAPTER_SHARED_PV_SUPPORT_DEF_H
 #define CHIMERATK_EPICS_CONTROL_SYSTEM_ADAPTER_SHARED_PV_SUPPORT_DEF_H
 
+#include <cstdint>
 #include <forward_list>
 #include <memory>
 
@@ -53,6 +54,12 @@ protected:
   friend class ControlSystemAdapterPVProvider;
 
   /**
+   * Constructor. Sets the index to the specified number.
+   */
+  ControlSystemAdapterSharedPVSupportBase(std::size_t index) : index(index) {
+  }
+
+  /**
    * Destructor. The destructor is protected because an instance should never be
    * destroyed through a pointer to this interface.
    */
@@ -69,6 +76,19 @@ protected:
   virtual std::function<void()> doNotify() = 0;
 
   /**
+   * Returns the index that is internally assigned to this PV by the PV
+   * provider. This is primarily used by the PV provider to quickly find related
+   * data structures for a given PV support.
+   *
+   * Note that this index might be undefined if the PV does not support value
+   * update notifications, so it should not be used by any code outside the PV
+   * provider.
+   */
+  inline std::size_t getIndex() const {
+    return this->index;
+  }
+
+  /**
    * Tells whether doNotify() may be called. The PVProvider will only call
    * doNotify() when this method returns true. Otherwise, it will periodically
    * call this method again until it returns false.
@@ -76,6 +96,15 @@ protected:
    * This method must only be called while holding a lock on the mutex.
    */
   virtual bool readyForNextNotification() = 0;
+
+private:
+
+  /**
+   * Index that is internally assigned to this PV by the PV provider. This index
+   * is primarily used by the PV provider to quickly find related data
+   * structures for a given PV support.
+   */
+  std::size_t index;
 
 };
 
@@ -131,15 +160,22 @@ public:
   /**
    * Creates a shared PV support instance for the specified process variable
    * name. The pointer to the PV provider must point to the PV provider that
-   * is creating this instance.
+   * is creating this instance. The index is the internal index used by the PV
+   * provider to identify the PV corresponding to this PV support.
    */
   ControlSystemAdapterSharedPVSupport(
       ControlSystemAdapterPVProvider::SharedPtr const &pvProvider,
-      std::string const &name);
+      std::string const &name, std::size_t index);
+
+  /**
+   * Tells whether the process variable represented by this PV support supports
+   * notifications. A PV that supports notifications can also be read.
+   */
+  bool canNotify();
 
   /**
    * Tells whether the process variable represented by this PV support can be
-   * read. A process variable that can be read will also supply notifications.
+   * read.
    */
   bool canRead();
 
@@ -219,14 +255,6 @@ private:
    * order to access their respective private fields and methods.
    */
   friend class ControlSystemAdapterPVSupport<T>;
-
-  /**
-   * Flag indicating whether a new value has been read for which no
-   * notifications have been delivered yet. This flag is set by the read(...)
-   * method in order to make sure that the value read by this method is also
-   * delivered to notification listeners.
-   */
-  bool alreadyReadNewValue;
 
   /**
    * Version number / time stamp belonging to the value stored in lastValueRead.

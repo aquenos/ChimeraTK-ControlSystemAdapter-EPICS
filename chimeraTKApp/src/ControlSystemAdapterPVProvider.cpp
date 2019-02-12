@@ -30,11 +30,14 @@
 namespace ChimeraTK {
 namespace EPICS {
 
+namespace {
+  using cppext::future_queue;
+} // anonymous namespace
+
 ControlSystemAdapterPVProvider::ControlSystemAdapterPVProvider(
-    ControlSystemPVManager::SharedPtr const & pvManager,
-    std::chrono::microseconds pollingInterval)
-    : pollingInterval(pollingInterval), pollingThreadShutdownRequested(false),
-      pvManager(pvManager) {
+    ControlSystemPVManager::SharedPtr const & pvManager)
+    : notificationThreadShutdownRequested(false),
+      pvManager(pvManager), wakeUpQueue(1) {
   this->insertCreatePVSupportFunc<std::int8_t>();
   this->insertCreatePVSupportFunc<std::uint8_t>();
   this->insertCreatePVSupportFunc<std::int16_t>();
@@ -44,7 +47,22 @@ ControlSystemAdapterPVProvider::ControlSystemAdapterPVProvider(
   this->insertCreatePVSupportFunc<float>();
   this->insertCreatePVSupportFunc<double>();
   this->insertCreatePVSupportFunc<std::string>();
-  this->pollingThread = std::thread([this]{this->runPollingThread();});
+  // We have to create a vector of all PVs that support notifications. We have
+  // to create this vector here because it is needed in the notification thread
+  // and when creating PV supports, so we would need extra synchronization if we
+  // created it in the notification thread.
+  for (auto &pv : this->pvManager->getAllProcessVariables()) {
+    // We can only support notifications if the PV supports the
+    // wait_for_new_data access mode. For other PVs, the I/O Intr mode is
+    // simply not supported and one can only read the latest value by polling.
+    if (pv->isReadable()
+        && pv->getAccessModeFlags().has(AccessMode::wait_for_new_data)) {
+      this->pvsForNotification.push_back(pv);
+    }
+  }
+  this->sharedPVSupportsByIndex.resize(this->pvsForNotification.size());
+  this->notificationThread =
+      std::thread([this]{this->runNotificationThread();});
 }
 
 std::type_info const &ControlSystemAdapterPVProvider::getDefaultType(
@@ -57,10 +75,10 @@ std::type_info const &ControlSystemAdapterPVProvider::getDefaultType(
 ControlSystemAdapterPVProvider::~ControlSystemAdapterPVProvider() {
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
-    this->pollingThreadShutdownRequested = true;
+    this->notificationThreadShutdownRequested = true;
+    this->wakeUpNotificationThread();
   }
-  this->pollingThreadCv.notify_all();
-  this->pollingThread.join();
+  this->notificationThread.join();
 }
 
 PVSupportBase::SharedPtr ControlSystemAdapterPVProvider::createPVSupport(
@@ -80,6 +98,7 @@ PVSupportBase::SharedPtr ControlSystemAdapterPVProvider::createPVSupport(
 template<typename T>
 PVSupportBase::SharedPtr ControlSystemAdapterPVProvider::createPVSupportInternal(
     std::string const &processVariableName) {
+  std::lock_guard<std::recursive_mutex> lock(this->mutex);
   // We normalize the PV name so that names that look different but actually
   // represent the same PV get resolved to the same shared PV support instance.
   std::string name = RegisterPath(processVariableName);
@@ -97,12 +116,22 @@ PVSupportBase::SharedPtr ControlSystemAdapterPVProvider::createPVSupportInternal
     if (sharedIter != this->sharedPVSupports.end()) {
       this->sharedPVSupports.erase(sharedIter);
     }
+    // We have to determine the index of the PV. Iterating over the list of all
+    // PVs does not look terribly efficient, but as creating a new shared PV
+    // support is a rare occassion, maintaining a hash map that maps PV names
+    // to indices does not seem worth the effort.
+    std::size_t index;
+    for (index = 0; index < pvsForNotification.size(); ++index) {
+      if (name == pvsForNotification[index]->getName()) {
+        break;
+      }
+    }
     // If the desired type is not supported for the specified process variable,
     // the constructor called by make_shared will thrown an exception. This is
     // exactly what we want, but we prefer an std::invalid_argument exception.
     try {
       shared = std::make_shared<ControlSystemAdapterSharedPVSupport<T>>(
-          this->shared_from_this(), name);
+          this->shared_from_this(), name, index);
     } catch (std::bad_cast &e) {
       throw std::invalid_argument(
           std::string("The type '") + typeid(T).name()
@@ -110,6 +139,12 @@ PVSupportBase::SharedPtr ControlSystemAdapterPVProvider::createPVSupportInternal
               + name + "'.");
     }
     this->sharedPVSupports.insert(std::make_pair(name, shared));
+    // Only PV supports for PVs that support notifications have a proper index,
+    // so we have to check that the index is valid before inserting the PV
+    // support into the vector.
+    if (index < this->sharedPVSupportsByIndex.size()) {
+      this->sharedPVSupportsByIndex[index] = shared;
+    }
   }
   auto typedShared =
       std::dynamic_pointer_cast<ControlSystemAdapterSharedPVSupport<T>>(shared);
@@ -135,12 +170,39 @@ void ControlSystemAdapterPVProvider::insertCreatePVSupportFunc() {
           &ControlSystemAdapterPVProvider::createPVSupportInternal<T>));
 }
 
-void ControlSystemAdapterPVProvider::runPollingThread() {
+void ControlSystemAdapterPVProvider::runNotificationThread() {
+  cppext::future_queue<std::size_t> notificationQueue;
+  std::size_t wakeUpQueueIndex;
+  // We have to create a vector of future queues for all process variables that
+  // support notifications. We will use these queues in the notification thread.
+  // We create that vector inside a block because we do not need it any longer
+  // after creating the result future queue.
+  {
+    std::vector<cppext::future_queue<void>> pvNotificationQueues;
+    for (auto &pv : this->pvsForNotification) {
+      auto &transferFuture = pv->readAsync();
+      pvNotificationQueues.push_back(
+          ChimeraTK::detail::getFutureQueueFromTransferFuture(transferFuture));
+    }
+    // As the last element, we append a special future queue that we can use to
+    // wake up the notification thread when we have to.
+    wakeUpQueueIndex = pvNotificationQueues.size();
+    pvNotificationQueues.push_back(this->wakeUpQueue);
+    // Now we can build a future queue that is notified whenever one of the PVs'
+    // future queues has a new element.
+    notificationQueue = cppext::when_any(
+            pvNotificationQueues.begin(), pvNotificationQueues.end());
+  }
   // We cannot check the abort condition here because we have to hold a lock on
   // the mutex while checking the condition.
-  bool waitInNextIteration = false;
   while (true) {
     std::forward_list<std::function<void()>> notifyFunctions;
+    size_t pvIndex;
+    // We have to call pop_wait BEFORE acquiring the mutex. Otherwise, we would
+    // block the mutex while waiting and the thread could never be woken up,
+    // because the code sending the wake-up request has to acquire the mutext as
+    // well.
+    notificationQueue.pop_wait(pvIndex);
     // We limit the code where we hold the mutex to the part where it is really
     // needed. In particular, we do not want to hold the lock when calling
     // notification callbacks as this could result in a deadlock in the worst
@@ -148,32 +210,36 @@ void ControlSystemAdapterPVProvider::runPollingThread() {
     {
       std::unique_lock<std::recursive_mutex> lock(this->mutex);
       // If a shutdown has been requested, we quit immediately.
-      if (this->pollingThreadShutdownRequested) {
+      if (this->notificationThreadShutdownRequested) {
         return;
       }
-      // We do the waiting here instead of at the end of the loop because we
-      // need to hold a lock on the mutex in order to do the waiting and we do
-      // not want to acquire the lock twice.
-      if (waitInNextIteration) {
-        this->pollingThreadCv.wait_for(lock, this->pollingInterval);
-        // The shutdown flag might have been changed while we were sleeping, so
-        // we check it again.
-        if (this->pollingThreadShutdownRequested) {
-          return;
-        }
-      }
-      // We set the waitInNextIteration flag here and reset it if we do anything
-      // meaningful.
-      waitInNextIteration = true;
       while (!this->pendingCallNotify.empty()) {
-        waitInNextIteration = false;
         std::shared_ptr<ControlSystemAdapterSharedPVSupportBase> sharedPVSupport(
             std::move(this->pendingCallNotify.front()));
         this->pendingCallNotify.pop_front();
         if (sharedPVSupport->readyForNextNotification()) {
-          auto notifyFunction = sharedPVSupport->doNotify();
-          if (notifyFunction) {
-            notifyFunctions.push_front(std::move(notifyFunction));
+          // We have to check whether a new value is available for the PV. There
+          // could be a new value available, for which we already consume the
+          // notification, but did not notify the PV support because it was not
+          // finished with handling the last notification.
+          try {
+            // Please note that we do not use the variable pvIndex here. The
+            // value of that variable must be preserved because we use it later
+            // when processing notifications from the notificationQueue.
+            if (ChimeraTK::detail::getFutureQueueFromTransferFuture(
+                    pvsForNotification[sharedPVSupport->getIndex()]
+                        ->readAsync()).pop()) {
+              // Whenever pop() was successful, we also have to call postRead().
+              pvsForNotification[sharedPVSupport->getIndex()]->postRead();
+              auto notifyFunction = sharedPVSupport->doNotify();
+              if (notifyFunction) {
+                notifyFunctions.push_front(std::move(notifyFunction));
+              }
+            }
+          } catch (ChimeraTK::detail::DiscardValueException &) {
+            // We can simply ignore such an exception - it only means that we
+            // did not actually receive a new value - so we do not have to
+            // notify the PV support.
           }
         }
       }
@@ -182,25 +248,58 @@ void ControlSystemAdapterPVProvider::runPollingThread() {
       // we can process them. If we did not have a limit, the list would grow
       // and grow until we run out of memory.
       int numberOfPVsWithEvent = 0;
-      ProcessVariable::SharedPtr pvWithEvent;
-      while (numberOfPVsWithEvent < 1000
-          && (pvWithEvent = this->pvManager->nextNotification())) {
-        ++numberOfPVsWithEvent;
-        waitInNextIteration = false;
-        auto &name = pvWithEvent->getName();
-        try {
-          auto sharedPVSupport = this->sharedPVSupports.at(name).lock();
-          if (sharedPVSupport && sharedPVSupport->readyForNextNotification()) {
-            auto notifyFunction = sharedPVSupport->doNotify();
-            if (notifyFunction) {
-              notifyFunctions.push_front(std::move(notifyFunction));
-            }
-          }
-        } catch (std::out_of_range &e) {
-          // If the notification is for a PV support that does not exist any
-          // longer, we simply ignore it.
+      // We do at least one iteration because we have at least one pvIndex (from
+      // calling notificationQueue.pop_wait() above).
+      do {
+        // If we find a request to wake up this thread, we break the loop right
+        // now. We use >= instead of == so that we never use an invalid index
+        // into one of the arrays. This should never happen unless there is a
+        // bug in the future queue, but it is better to be safe than sorry.
+        if (pvIndex >= wakeUpQueueIndex) {
+          this->wakeUpQueue.pop();
+          break;
         }
-      }
+        ++numberOfPVsWithEvent;
+        auto sharedPVSupport = this->sharedPVSupportsByIndex[pvIndex].lock();
+        // If the notification is for a PV support that does not exist we ignore
+        // it, but we still make sure that we receive the value update. This
+        // way, a PV support will have the newest value if it is created at a
+        // later point in time.
+        if (!sharedPVSupport) {
+          try {
+            if (ChimeraTK::detail::getFutureQueueFromTransferFuture(
+                    pvsForNotification[pvIndex]->readAsync()).pop()) {
+              // Whenever pop() was successful, we also have to call postRead().
+              pvsForNotification[pvIndex]->postRead();
+            }
+          } catch (ChimeraTK::detail::DiscardValueException &) {
+            // We can simply ignore such an exception - it only means that we
+            // did not actually receive a new value.
+          }
+          continue;
+        }
+        if (sharedPVSupport && sharedPVSupport->readyForNextNotification()) {
+          // We have to receive the new value. It could happen that no such
+          // value is actually available, because we already read it from the
+          // queue for the PV. This is not an error and we can simply ignore
+          // such a notification.
+          try {
+            if (ChimeraTK::detail::getFutureQueueFromTransferFuture(
+                    pvsForNotification[pvIndex]->readAsync()).pop()) {
+              // Whenever pop() was successful, we also have to call postRead().
+              pvsForNotification[pvIndex]->postRead();
+              auto notifyFunction = sharedPVSupport->doNotify();
+              if (notifyFunction) {
+                notifyFunctions.push_front(std::move(notifyFunction));
+              }
+            }
+          } catch (ChimeraTK::detail::DiscardValueException &) {
+            // We can simply ignore such an exception - it only means that we
+            // did not actually receive a new value - so we do not have to
+            // notify the PV support.
+          }
+        }
+      } while (numberOfPVsWithEvent < 1000 && notificationQueue.pop(pvIndex));
     }
     // After releasing the lock, we call the notify functions. It is important
     // that we do not do this while holding the lock because we would risk a
@@ -216,7 +315,12 @@ void ControlSystemAdapterPVProvider::scheduleCallNotify(
     std::shared_ptr<ControlSystemAdapterSharedPVSupportBase> pvSupport) {
   // This method is only called while already holding a lock on the mutex.
   this->pendingCallNotify.push_front(std::move(pvSupport));
-  this->pollingThreadCv.notify_all();
+  this->wakeUpNotificationThread();
+}
+
+void ControlSystemAdapterPVProvider::wakeUpNotificationThread() {
+  // This method is only called while already holding a lock on the mutex.
+  this->wakeUpQueue.push();
 }
 
 } // namespace EPICS

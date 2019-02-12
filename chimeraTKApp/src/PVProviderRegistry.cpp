@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -41,16 +41,14 @@ PVProvider::SharedPtr PVProviderRegistry::getPVProvider(
 
 void PVProviderRegistry::registerApplication(
       std::string const &appName,
-      ControlSystemPVManager::SharedPtr pvManager,
-      int pollingIntervalInMicroSeconds) {
+      ControlSystemPVManager::SharedPtr pvManager) {
   std::lock_guard<std::recursive_mutex> lock(PVProviderRegistry::mutex);
   if (PVProviderRegistry::pvProviders.find(appName)
       != PVProviderRegistry::pvProviders.end()) {
     throw std::invalid_argument(
       std::string("The name '") + appName + "' is already in use.");
   }
-  auto pvProvider = std::make_shared<ControlSystemAdapterPVProvider>(
-    pvManager, std::chrono::microseconds(pollingIntervalInMicroSeconds));
+  auto pvProvider = std::make_shared<ControlSystemAdapterPVProvider>(pvManager);
   PVProviderRegistry::pvProviders.insert(std::make_pair(appName, pvProvider));
 }
 

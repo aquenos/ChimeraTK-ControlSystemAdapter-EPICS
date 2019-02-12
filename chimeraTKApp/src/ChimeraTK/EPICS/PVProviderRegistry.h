@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -53,9 +53,7 @@ public:
    * whitespace) that is used to identify the application.
 
    * The PV manager must be a reference to the control-system PV manager for the
-   * application. The optional polling interval (default value 100) specifies
-   * the number of microseconds that the polling thread sleeps, when no
-   * notifications about new values are pending.
+   * application.
    *
    * The application name must be unique and must be different from any other
    * application name or device name that has been registered with this
@@ -63,8 +61,7 @@ public:
    */
   static void registerApplication(
       std::string const &appName,
-      ControlSystemPVManager::SharedPtr pvManager,
-      int pollingIntervalInMicroSeconds = 100);
+      ControlSystemPVManager::SharedPtr pvManager);
 
   /**
    * Registers a ChimeraTK Device Access device. This method has to be called

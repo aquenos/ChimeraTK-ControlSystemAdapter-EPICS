@@ -89,17 +89,12 @@ sufficient to link the IOC to the application library and add the following line
 to `st.cmd`:
 
 ```
-chimeraTKConfigureApplication("applicationName", 100)
+chimeraTKConfigureApplication("applicationName")
 ```
 
 In this example, `applicationName` is the same name that is also used in the `INP`
 or `OUT` fields of records. This can be an arbitrary string, but it must only
 contain ASCII letters, digits, and the underscore.
-
-The polling rate (100 microseconds in this example) defines how often the IOC
-checks whether value updates from the application are available. The default
-value of 100 µs is a good compromise between low latency and CPU utilization
-(checking once every 100 µs should not generate a significant overhead).
 
 If an application is not registered automatically (e.g. because it does not
 implement `ApplicationBase` so that more than one instance can be present in the
@@ -113,7 +108,7 @@ For example:
 
 ```
 ChimeraTK::EPICS::PVProviderRegistry::registerApplication(
-    "myApplication", controlSystemPVManager, 100);
+    "myApplication", controlSystemPVManager);
 ```
 
 You can do this from the IOC's main function, but typically you will rather add
@@ -253,10 +248,7 @@ scanning is less efficient and might also result in events being lost.
 certainly not have the desired results. If the scan rate is higher than the
 update rate of the underlying process variable, using periodic scanning will
 simply result in an unnecessary overhead. When the scan rate is lower than the
-update rate, a read operation may (and typically will) return an old value
-because the ChimeraTK Control System Adapter internally uses a queue when
-transferring values from the application to the control system. As this queue
-is bounded, you also will occasionally lose values when there is an overflow.
+update rate, you will miss updates.
 
 Another limitation when using this device support with the ChimeraTK Control
 System Adapter is that only one data type (the data type of the underlying

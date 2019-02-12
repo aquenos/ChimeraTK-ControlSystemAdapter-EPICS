@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -39,13 +39,10 @@ extern "C" {
   // function.
   static const iocshArg iocshChimeraTKConfigureApplicationArg0 = {
       "application ID", iocshArgString };
-  static const iocshArg iocshChimeraTKConfigureApplicationArg1 = {
-      "polling interval", iocshArgInt };
   static const iocshArg * const iocshChimeraTKConfigureApplicationArgs[] = {
-      &iocshChimeraTKConfigureApplicationArg0,
-      &iocshChimeraTKConfigureApplicationArg1 };
+      &iocshChimeraTKConfigureApplicationArg0 };
   static const iocshFuncDef iocshChimeraTKConfigureApplicationFuncDef = {
-      "chimeraTKConfigureApplication", 2, iocshChimeraTKConfigureApplicationArgs };
+      "chimeraTKConfigureApplication", 1, iocshChimeraTKConfigureApplicationArgs };
 
   // Init hook that takes care of actually starting the application. This hook
   // is registered by the iocshChimeraTKConfigureApplicationFunc function.
@@ -72,7 +69,6 @@ extern "C" {
    */
   static void iocshChimeraTKConfigureApplicationFunc(const iocshArgBuf *args) noexcept {
     char *applicationId = args[0].sval;
-    int pollingInterval = args[1].ival;
     // Verify and convert the parameters.
     if (!applicationId) {
       errorPrintf(
@@ -83,10 +79,6 @@ extern "C" {
       errorPrintf(
         "Could not configure the application: Application ID must not be empty.");
       return;
-    }
-    if (pollingInterval <= 0) {
-      // Use default value of 100 microseconds.
-      pollingInterval = 100;
     }
     auto pvManagers = createPVManager();
     // We use a pointer instead of a reference. getInstance() returns a
@@ -113,8 +105,7 @@ extern "C" {
       errorPrintf("Could not initialize the application: Unknown error.");
     }
     try {
-      PVProviderRegistry::registerApplication(applicationId, pvManagers.first,
-        pollingInterval);
+      PVProviderRegistry::registerApplication(applicationId, pvManagers.first);
     } catch (std::exception &e) {
       errorPrintf("Could not register the application: %s", e.what());
       return;
