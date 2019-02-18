@@ -237,18 +237,19 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
             && numberOfPendingUpdatesForPV[pendingPVIndex]) {
           --numberOfPendingUpdatesForPV[pendingPVIndex];
           try {
-            if (ChimeraTK::detail::getFutureQueueFromTransferFuture(
-                    pvsForNotification[pendingPVIndex]->readAsync()).pop()) {
-              // Whenever pop() was successful, we also have to call postRead().
-              pvsForNotification[pendingPVIndex]->postRead();
-              auto notifyFunction = sharedPVSupport->doNotify();
-              if (notifyFunction) {
-                notifyFunctions.push_front(std::move(notifyFunction));
-              }
-            } else {
-              // If there are less value updates than notifications, something
-              // is seriously wrong.
-              assert(false);
+            // According to the documentation of when_any, it can happen that
+            // pop() returns false even though there is a notification when
+            // push_overwrite() is used on the queue. For this reason, we use
+            // pop_wait() instead. This call will usually not block and if it
+            // does block, it is only for the short amount of time during which
+            // an element in the queue is replaced.
+            ChimeraTK::detail::getFutureQueueFromTransferFuture(
+                    pvsForNotification[pendingPVIndex]->readAsync()).pop_wait();
+            // Whenever pop() was successful, we also have to call postRead().
+            pvsForNotification[pendingPVIndex]->postRead();
+            auto notifyFunction = sharedPVSupport->doNotify();
+            if (notifyFunction) {
+              notifyFunctions.push_front(std::move(notifyFunction));
             }
           } catch (ChimeraTK::detail::DiscardValueException &) {
             // We can simply ignore such an exception - it only means that we
@@ -281,11 +282,16 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
         // later point in time.
         if (!sharedPVSupport) {
           try {
-            if (ChimeraTK::detail::getFutureQueueFromTransferFuture(
-                    pvsForNotification[pvIndex]->readAsync()).pop()) {
-              // Whenever pop() was successful, we also have to call postRead().
-              pvsForNotification[pvIndex]->postRead();
-            }
+            // According to the documentation of when_any, it can happen that
+            // pop() returns false even though there is a notification when
+            // push_overwrite() is used on the queue. For this reason, we use
+            // pop_wait() instead. This call will usually not block and if it
+            // does block, it is only for the short amount of time during which
+            // an element in the queue is replaced.
+            ChimeraTK::detail::getFutureQueueFromTransferFuture(
+                    pvsForNotification[pvIndex]->readAsync()).pop_wait();
+            // Whenever pop() was successful, we also have to call postRead().
+            pvsForNotification[pvIndex]->postRead();
           } catch (ChimeraTK::detail::DiscardValueException &) {
             // We can simply ignore such an exception - it only means that we
             // did not actually receive a new value.
@@ -294,18 +300,19 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
         }
         if (sharedPVSupport->readyForNextNotification()) {
           try {
-            if (ChimeraTK::detail::getFutureQueueFromTransferFuture(
-                    pvsForNotification[pvIndex]->readAsync()).pop()) {
-              // Whenever pop() was successful, we also have to call postRead().
-              pvsForNotification[pvIndex]->postRead();
-              auto notifyFunction = sharedPVSupport->doNotify();
-              if (notifyFunction) {
-                notifyFunctions.push_front(std::move(notifyFunction));
-              }
-            } else {
-              // If there are less value updates than notifications, something
-              // is seriously wrong.
-              assert(false);
+            // According to the documentation of when_any, it can happen that
+            // pop() returns false even though there is a notification when
+            // push_overwrite() is used on the queue. For this reason, we use
+            // pop_wait() instead. This call will usually not block and if it
+            // does block, it is only for the short amount of time during which
+            // an element in the queue is replaced.
+            ChimeraTK::detail::getFutureQueueFromTransferFuture(
+                    pvsForNotification[pvIndex]->readAsync()).pop_wait();
+            // Whenever pop() was successful, we also have to call postRead().
+            pvsForNotification[pvIndex]->postRead();
+            auto notifyFunction = sharedPVSupport->doNotify();
+            if (notifyFunction) {
+              notifyFunctions.push_front(std::move(notifyFunction));
             }
           } catch (ChimeraTK::detail::DiscardValueException &) {
             // We can simply ignore such an exception - it only means that we
