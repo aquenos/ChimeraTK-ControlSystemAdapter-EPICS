@@ -21,6 +21,7 @@
 #define CHIMERATK_EPICS_CONTROL_SYSTEM_ADAPTER_PV_PROVIDER_H
 
 #include <chrono>
+#include <condition_variable>
 #include <forward_list>
 #include <functional>
 #include <memory>
@@ -31,6 +32,7 @@
 #include <vector>
 
 #include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/UnidirectionalProcessArray.h>
 #include <ChimeraTK/cppext/future_queue.hpp>
 
 #include "ControlSystemAdapterSharedPVSupportFwdDecl.h"
@@ -84,7 +86,7 @@ private:
 
   /**
    * The ControlSystemAdapterSharedPVSupport is a friend so that it can call
-   * scheduleCallNotify(...).
+   * wakeUpNotificationThread().
    */
   template <typename T>
   friend class ControlSystemAdapterSharedPVSupport;
@@ -109,18 +111,21 @@ private:
   std::thread notificationThread;
 
   /**
+   * Condition variable used by the notification thread. When sleeping, without
+   * waiting for a notification, the thread waits on this condition variable,
+   * making it possible to wake the thread up. As code wanting to wake up the
+   * notification thread cannot know whether it is waiting this condition
+   * variable or waiting for the next notification, code wanting to wake up the
+   * thread also has to write to the wakeUpPVSender.
+   */
+  std::condition_variable_any notificationThreadCv;
+
+  /**
    * Tells whether the notification thread should shut down. This flag is set by
    * the destructor in order to make sure that the notification thread quits
    * before this object is destroyed.
    */
   bool notificationThreadShutdownRequested;
-
-  /**
-   * List of shared PV support instances for which doNotify() shall be called.
-   * This list is filled by scheduleCallNotify(...) and processed by
-   * runNotificationThread().
-   */
-  std::forward_list<std::shared_ptr<ControlSystemAdapterSharedPVSupportBase>> pendingCallNotify;
 
   /**
    * PV manager used to access the process variables.
@@ -158,10 +163,14 @@ private:
   std::unordered_map<std::string, std::weak_ptr<ControlSystemAdapterSharedPVSupportBase>> sharedPVSupports;
 
   /**
-   * Special future queue that is used to wake up the notification thread when
-   * it is waiting for a new notification.
+   * PV used to wake up the notification thread when it is waiting for a new
+   * notification. In this case, the thread can be woken up by writing to this
+   * PV. As code wanting to wake up the notification thread cannot know whether
+   * the thread is waiting for the next notification or waiting for some other
+   * event, code wanting to wake up the thread also has to notify the
+   * notificationThreadCv condition variable in addition to writing to this PV.
    */
-  cppext::future_queue<void> wakeUpQueue;
+  ProcessArray<int>::SharedPtr wakeUpPV;
 
   // Delete copy constructors and assignment operators.
   ControlSystemAdapterPVProvider(ControlSystemAdapterPVProvider const&) = delete;
@@ -192,16 +201,6 @@ private:
    * notification thread created by the constructor.
    */
   void runNotificationThread();
-
-  /**
-   * Schedules the passed PV support's doNotify() method to be called by the
-   * notification thread, if there are pending notifications. The PV support
-   * uses this method to notify the PV provider that it has finished processing
-   * a notification and is ready to receive the next one.
-   *
-   * The code calling this method must hold a lock on the mutex.
-   */
-  void scheduleCallNotify(std::shared_ptr<ControlSystemAdapterSharedPVSupportBase> pvSupport);
 
   /**
    * Wakes the notification thread up.

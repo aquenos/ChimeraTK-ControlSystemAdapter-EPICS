@@ -273,10 +273,11 @@ template<typename T>
 void ControlSystemAdapterSharedPVSupport<T>::notifyFinished() {
   // The code calling this method already acquires a lock on the shared mutex.
   --this->notificationPendingCount;
-  // If the count is now zero, we have to make sure that doNotify() is called
-  // again because there might be more values waiting to be read.
+  // If the count is now zero, we have to wake up the notification thread
+  // because it might be waiting on this PV support to be ready for the next
+  // notification.
   if (notificationPendingCount == 0) {
-    this->pvProvider->scheduleCallNotify(this->shared_from_this());
+    this->pvProvider->wakeUpNotificationThread();
   }
 }
 
