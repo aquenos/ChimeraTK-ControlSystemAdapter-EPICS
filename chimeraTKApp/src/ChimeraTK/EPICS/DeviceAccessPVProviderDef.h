@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CHIMERATK_EPICS_DEVICE_ACCESS_PV_PROVIDER_H
-#define CHIMERATK_EPICS_DEVICE_ACCESS_PV_PROVIDER_H
+#ifndef CHIMERATK_EPICS_DEVICE_ACCESS_PV_PROVIDER_DEF_H
+#define CHIMERATK_EPICS_DEVICE_ACCESS_PV_PROVIDER_DEF_H
 
 #include <memory>
 #include <type_traits>
@@ -135,10 +135,11 @@ private:
   void insertCreatePVSupportFunc();
 
   /**
-   * Performs I/O operations. This method is called by the polling thread
-   * created by the constructor.
+   * Tells whether this PV provider works synchronously (I/O tasks are processed
+   * in the calling thread) or asynchronously (I/O tasks are processed by a
+   * separate thread).
    */
-  void runIoThread();
+  bool isSynchronous();
 
   /**
    * Schedule an I/O task to be run by one of the I/O threads. If there are no
@@ -153,18 +154,7 @@ private:
 
 };
 
-template<typename Function>
-bool DeviceAccessPVProvider::submitIoTask(Function &&f) {
-    if (this->synchronous) {
-        f();
-        return true;
-    } else {
-        this->ioExecutor.submitTask(std::forward<Function>(f));
-        return false;
-    }
-}
-
 } // namespace EPICS
 } // namespace ChimeraTK
 
-#endif // CHIMERATK_EPICS_DEVICE_ACCESS_PV_PROVIDER_H
+#endif // CHIMERATK_EPICS_DEVICE_ACCESS_PV_PROVIDER_DEF_H

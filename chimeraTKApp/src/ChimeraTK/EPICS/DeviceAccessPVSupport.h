@@ -24,7 +24,7 @@
 #include <memory>
 #include <utility>
 
-#include "DeviceAccessPVProvider.h"
+#include "DeviceAccessPVProviderDef.h"
 #include "PVSupport.h"
 #include "errorPrint.h"
 
@@ -166,15 +166,16 @@ bool DeviceAccessPVSupport<T>::read(
   // lambda expression was running, the raw pointer would be invalid. This
   // cannot happen when using a shared pointer.
   auto sharedThis = this->shared_from_this();
+  bool immediate = this->provider->isSynchronous();
   this->provider->submitIoTask(
-    [sharedThis, successCallback, errorCallback](){
+    [sharedThis, immediate, successCallback, errorCallback](){
       Value value(sharedThis->accessor.getNElements());
       try {
         sharedThis->accessor.read();
         sharedThis->accessor.swap(value);
       } catch (...) {
         try {
-          errorCallback(false, std::current_exception());
+          errorCallback(immediate, std::current_exception());
           return;
         } catch (std::exception &e) {
           errorPrintf(
@@ -186,7 +187,8 @@ bool DeviceAccessPVSupport<T>::read(
         }
       }
       try {
-        successCallback(false, std::make_shared<Value const>(std::move(value)),
+        successCallback(immediate,
+          std::make_shared<Value const>(std::move(value)),
           VersionNumber());
       } catch (std::exception &e) {
         errorPrintf(
@@ -197,7 +199,7 @@ bool DeviceAccessPVSupport<T>::read(
           "A read callback threw an exception. This indicates a bug in the record device support code.");
       }
   });
-  return false;
+  return immediate;
 }
 
 template<typename T>
@@ -224,13 +226,14 @@ bool DeviceAccessPVSupport<T>::write(
   // cannot happen when using a shared pointer.
   auto sharedThis = this->shared_from_this();
   this->accessor.swap(value);
+  bool immediate = this->provider->isSynchronous();
   this->provider->submitIoTask(
-    [sharedThis, successCallback, errorCallback](){
+    [sharedThis, immediate, successCallback, errorCallback](){
       try {
         sharedThis->accessor.write();
       } catch (...) {
         try {
-          errorCallback(false, std::current_exception());
+          errorCallback(immediate, std::current_exception());
           return;
         } catch (std::exception &e) {
           errorPrintf(
@@ -242,7 +245,7 @@ bool DeviceAccessPVSupport<T>::write(
         }
       }
       try {
-        successCallback(false);
+        successCallback(immediate);
       } catch (std::exception &e) {
         errorPrintf(
           "A write callback threw an exception. This indicates a bug in the record device support code. The exception message was: %s",
@@ -252,7 +255,7 @@ bool DeviceAccessPVSupport<T>::write(
           "A write callback threw an exception. This indicates a bug in the record device support code.");
       }
   });
-  return false;
+  return immediate;
 }
 
 } // namespace EPICS

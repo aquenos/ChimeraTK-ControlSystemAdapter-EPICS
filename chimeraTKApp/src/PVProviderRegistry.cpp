@@ -20,7 +20,7 @@
 #include <stdexcept>
 
 #include "ChimeraTK/EPICS/ControlSystemAdapterPVProvider.h"
-#include "ChimeraTK/EPICS/DeviceAccessPVProvider.h"
+#include "ChimeraTK/EPICS/DeviceAccessPVProviderImpl.h"
 
 #include "ChimeraTK/EPICS/PVProviderRegistry.h"
 

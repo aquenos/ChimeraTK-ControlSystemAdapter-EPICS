@@ -23,7 +23,7 @@
 
 #include "ChimeraTK/EPICS/DeviceAccessPVSupport.h"
 
-#include "ChimeraTK/EPICS/DeviceAccessPVProvider.h"
+#include "ChimeraTK/EPICS/DeviceAccessPVProviderImpl.h"
 
 namespace ChimeraTK {
 namespace EPICS {
@@ -81,6 +81,10 @@ std::type_info const &DeviceAccessPVProvider::getDefaultType(
   }
 }
 
+bool DeviceAccessPVProvider::isSynchronous() {
+  return this->synchronous;
+}
+
 std::shared_ptr<PVSupportBase> DeviceAccessPVProvider::createPVSupport(
     std::string const &processVariableName,
     std::type_info const& elementType) {
@@ -93,21 +97,6 @@ std::shared_ptr<PVSupportBase> DeviceAccessPVProvider::createPVSupport(
         std::string("The element type '") + elementType.name()
             + "' is not supported.");
   }
-}
-
-template<typename T>
-PVSupportBase::SharedPtr DeviceAccessPVProvider::createPVSupportInternal(
-    std::string const &processVariableName) {
-  return std::make_shared<DeviceAccessPVSupport<T>>(
-    this->shared_from_this(), processVariableName);
-}
-
-template<typename T>
-void DeviceAccessPVProvider::insertCreatePVSupportFunc() {
-  this->createPVSupportFuncs.insert(
-      std::make_pair(
-          std::type_index(typeid(T)),
-          &DeviceAccessPVProvider::createPVSupportInternal<T>));
 }
 
 } // namespace EPICS
