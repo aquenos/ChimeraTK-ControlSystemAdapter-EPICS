@@ -156,7 +156,7 @@ std::tuple<typename PVSupport<T>::Value, VersionNumber> DeviceAccessPVSupport<T>
   this->accessor.swap(value);
   return std::make_tuple(
       std::move(value),
-      VersionNumber());
+      this->accessor.getVersionNumber());
 }
 
 template<typename T>
@@ -191,7 +191,7 @@ bool DeviceAccessPVSupport<T>::read(
       try {
         successCallback(immediate,
           std::make_shared<Value const>(std::move(value)),
-          VersionNumber());
+          sharedThis->accessor.getVersionNumber());
       } catch (std::exception &e) {
         errorPrintf(
           "A read callback threw an exception. This indicates a bug in the record device support code. The exception message was: %s",
