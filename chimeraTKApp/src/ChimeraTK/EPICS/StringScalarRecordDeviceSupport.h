@@ -220,7 +220,7 @@ public:
    */
   void getInterruptInfo(int command, ::IOSCANPVT *iopvt) {
     auto pvSupport = this->template getPVSupport<std::string>();
-    // A command value of 0 means enable I/O Intr mode, a value of 0 means
+    // A command value of 0 means enable I/O Intr mode, a value of 1 means
     // disable.
     if (command == 0) {
       if (!pvSupport->canNotify()) {
@@ -419,9 +419,12 @@ public:
   StringScalarRecordDeviceSupport(RecordType *record)
       : detail::StringScalarRecordDeviceSupportTrait<RecordType, HasSizvField>(
           record, record->out) {
+    // We mark the version number as invalid, so that the first notification is
+    // always accepted when the the initialization fails.
+    this->versionNumberValid = false;
+    auto pvSupport = this->template getPVSupport<std::string>();
     try {
-      auto valueTimeStampAndVersion =
-        this->template getPVSupport<std::string>()->initialValue();
+      auto valueTimeStampAndVersion = pvSupport->initialValue();
       auto &value = std::get<0>(valueTimeStampAndVersion);
       // We already checked the number of elements of the PV in the constructor,
       // so this check should always succeed. However, if something is changed
@@ -434,11 +437,65 @@ public:
         throw std::logic_error(oss.str());
       }
       this->writeValueField(value[0]);
+      this->value = value[0];
+      this->versionNumber = std::get<1>(valueTimeStampAndVersion);
+      this->versionNumberValid = true;
+      this->updateTimeStamp(this->versionNumber);
       // Reset the UDF flag because we now have a valid value.
       this->record->udf = 0;
+      recGblResetAlarms(this->record);
     } catch (...) {
       // It might not always be possible to get an initial value, so it is not
       // an error if this fails.
+    }
+    // If the PV supports notifications and the nobidirectional flag has not
+    // been set, we register a notification callback so that we can update the
+    // record's value when it changes on the device side.
+    if (!this->noBidirectional && pvSupport->canNotify()) {
+      // We can safely pass this to the callback because a record device support
+      // is never destroyed once successfully constructed.
+      pvSupport->notify(
+        [this, pvSupport](
+            typename PVSupport<std::string>::SharedValue const &value,
+            VersionNumber const &versionNumber) {
+          // Unlike for input records we need a mutex here because processing of
+          // the record may be triggered externally, so it can happen that the
+          // records is processed while we are also in this callback.
+          std::lock_guard<std::recursive_mutex> lock(this->mutex);
+          // We only want to process the record if this update is newer than the
+          // last value that we wrote. We consider a value with the same version
+          // number as newer because it is coming back from the application,
+          // which means that the application must already have seen the value
+          // that we wrote. However, there is no need to process the record if
+          // the received value is in fact the same one as the last value.
+          if (!this->versionNumberValid
+              || versionNumber > this->versionNumber
+              || (versionNumber == this->versionNumber
+                  && (this->value != (*value)[0]))) {
+            bool oldNotifyPending = this->notifyPending;
+            this->value = (*value)[0];
+            this->versionNumber = versionNumber;
+            this->notifyPending = true;
+            // If another notify operation or a write operation is pending, the
+            // record is going to be processed again when it has finished.
+            // Otherwise, we schedule the record to be processed.
+            if (this->notifyPending && !oldNotifyPending && !this->writePending) {
+              ::callbackRequestProcessCallback(
+                  &this->processCallback, priorityMedium, this->record);
+            }
+          }
+          // Four output records, we do not need a strict guarantee that we see
+          // all values received from the device, so we can tell the PV support
+          // that the notification has finished.
+          pvSupport->notifyFinished();
+        },
+        [pvSupport](std::exception_ptr const& error) {
+          // It we receive an error notification for an output record, we cannot
+          // tell whether this error precedes the last write operation (unlike a
+          // value, an error is not associated with a version number), so we
+          // choose to ignore it.
+          pvSupport->notifyFinished();
+        });
     }
   }
 
@@ -446,24 +503,55 @@ public:
    * Starts or completes a write operation (depending on the current state).
    */
   void process() {
+    // We have to hold a lock on the notify mutex in this function because we
+    // access fields that are also accessed from the notify callback.
+    std::lock_guard<std::recursive_mutex> lock(this->mutex);
     // If the record's PACT field is set, this method is called because an
     // asynchronous read completed.
     if (this->record->pact) {
       this->record->pact = false;
+      this->writePending = false;
       if (this->writeException) {
         auto tempException = this->writeException;
         this->writeException = std::exception_ptr();
+        // If a notification is pending, we want that notification to be
+        // processed after we have signaled the failure of the last write
+        // operation to the user.
+        if (notifyPending) {
+          ::callbackRequestProcessCallback(
+            &this->processCallback, priorityMedium, this->record);
+        }
         std::rethrow_exception(tempException);
       }
+      // If there is no pending notification, we are done. Otherwise, we process
+      // that notification.
+      if (!notifyPending) {
+        return;
+      }
+    }
+    // If we have received a notification, we update the record's value with the
+    // received value. We do not have to check the version number because this
+    // already happened before setting the notifyPending flag.
+    if (this->notifyPending) {
+      this->notifyPending = false;
+      this->writeValueField(this->value);
+      this->updateTimeStamp(this->versionNumber);
       return;
     }
 
     // Otherwise, this method is called because a value should be written.
     // We can safely pass this to the callback because a record device support
     // is never destroyed once successfully constructed.
+    this->value = this->readValueField();
     auto pvSupport = this->template getPVSupport<std::string>();
+    // We generate a new version number for the write operation. This ensures
+    // that we will only accept value updates recevied from the application that
+    // are newer than the value that we are writing now.
+    this->versionNumber = VersionNumber();
+    this->updateTimeStamp(this->versionNumber);
     bool immediate = pvSupport->write(
-      std::vector<std::string>{this->readValueField()},
+      std::vector<std::string>{this->value},
+      this->versionNumber,
       [this](bool immediate) {
         if (!immediate) {
           ::callbackRequestProcessCallback(
@@ -478,6 +566,7 @@ public:
         }
       });
     this->record->pact = true;
+    this->writePending = true;
     if (immediate) {
       this->process();
     }
@@ -486,9 +575,55 @@ public:
 private:
 
   /**
+   * Mutex that is protecting access to notifyPending, value, versionNumber,
+   * versionNumberValid, and writePending.
+   */
+  std::recursive_mutex mutex;
+
+  /**
+   * Flag indicating whether a notification has been received that has not been
+   * processed yet. This field must only be accessed while holding a lock on the
+   * mutex.
+   */
+  bool notifyPending;
+
+  /**
+   * Value that was last written to the application or that we received with the
+   * last notification. This field must only be accessed while holding a lock on
+   * the mutex.
+   */
+  std::string value;
+
+  /**
+   * Version number that is associated with the current value of the record.
+   * This can either be the version number used for the last write operation or
+   * the version received as part of the last notification. We use this in order
+   * to decide whether a value received from the device (through a notification)
+   * is older or newer than the value that we already have. This field must only
+   * be accessed while holding a lock on the mutex.
+   */
+  VersionNumber versionNumber;
+
+  /**
+   * Flag indicating whether the version number is valid.  If it is not valid,
+   * any notification that is received is accepted. This field must only be
+   * accessed while holding a lock on the mutex.
+   */
+  bool versionNumberValid;
+
+  /**
    * Exception that occurred while trying to write a value.
    */
   std::exception_ptr writeException;
+
+  /**
+   * Flag indicating that an asynchronous write operation is in progress.
+   * Basically, this is the same flag as the PACT field of the record, but the
+   * PACT field may be modifed by the record support code while this one is
+   * exclusively used by the device support. This field must only be accessed
+   * while holding a lock on the mutex.
+   */
+  bool writePending;
 
 };
 

@@ -26,6 +26,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <queue>
 #include <thread>
 #include <typeindex>
 #include <unordered_map>
@@ -163,6 +164,12 @@ private:
   std::unordered_map<std::string, std::weak_ptr<ControlSystemAdapterSharedPVSupportBase>> sharedPVSupports;
 
   /**
+   * Tasks that have been submitted to be executed in the notfication thread,
+   * but have not been run yet.
+   */
+  std::queue<std::function<void()>> tasks;
+
+  /**
    * PV used to wake up the notification thread when it is waiting for a new
    * notification. In this case, the thread can be woken up by writing to this
    * PV. As code wanting to wake up the notification thread cannot know whether
@@ -195,6 +202,14 @@ private:
    */
   template<typename T>
   void insertCreatePVSupportFunc();
+
+  /**
+   * Runs a task inside the notification thread. This is primarily intended for
+   * use by the PV supports so that they can run a task for which they know that
+   * it will not interfer with the notification process. The tasks are run
+   * before running regular notifications.
+   */
+  void runInNotificationThread(std::function<void()> const &task);
 
   /**
    * Implements the notification logic. This method is called by the

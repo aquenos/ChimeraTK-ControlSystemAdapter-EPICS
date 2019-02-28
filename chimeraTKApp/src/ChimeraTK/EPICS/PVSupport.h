@@ -278,6 +278,7 @@ public:
    */
   virtual bool write(
       Value const &value,
+      VersionNumber const &versionNumber,
       WriteCallback const &successCallback,
       ErrorCallback const &errorCallback) {
     throw std::logic_error(
@@ -301,6 +302,7 @@ public:
    */
   virtual bool write(
       Value &&value,
+      VersionNumber const &versionNumber,
       WriteCallback const &successCallback,
       ErrorCallback const &errorCallback) {
     throw std::logic_error(

@@ -29,6 +29,10 @@ namespace EPICS {
 
 namespace {
 
+struct Options {
+  bool noBidirectional = false;
+};
+
 class Parser {
 
 public:
@@ -41,18 +45,39 @@ public:
     auto foundAppOrDevName = appOrDevName();
     separator();
     auto foundPvName = pvName();
-    bool expectValueType = !isEndOfString();
-    if (expectValueType) {
+    Options foundOptions;
+    bool expectValueType = false;
+    // The value type might be omitted and the next element that we see might be
+    // the options list, so we have to check which of the two it is.
+    if (!isEndOfString()) {
       separator();
+      // We can only peek if there is at least one character left, so we have to
+      // check first.
+      if (isEndOfString()) {
+        throwException("Expected type specifier or \"(\", but found end of string.");
+      }
+      // We peek at the next character to decide wheter to expect a type specifier
+      // or a list of options.
+      if (peek() == '(') {
+        foundOptions = options();
+      } else {
+        expectValueType = true;
+      }
     }
     std::type_info const & foundValueType =
       expectValueType ? valueType() : typeid(void);
+    // If there is a value type, the options list may follow. Otherwise, we
+    // already handled the case where the is an options list, but no value type.
+    if (!isEndOfString() && expectValueType) {
+      separator();
+      foundOptions = options();
+    }
     if (!isEndOfString()) {
       throwException(std::string("Expected end of string, but found \"")
         + excerpt() + "\".");
     }
     return RecordAddress(foundAppOrDevName, foundPvName, foundValueType,
-      expectValueType);
+      expectValueType, foundOptions.noBidirectional);
   }
 
 private:
@@ -117,12 +142,14 @@ private:
   }
 
   void expect(std::string const& str) {
-    if (isEndOfString()) {
-      throwException(std::string("Expected \"") + str
-        + "\", but found end of string.");
-    } else {
-      throwException(std::string("Expected \"") + str
-        + "\", but found \"" + excerpt() + "\".");
+    if (!accept(str)) {
+      if (isEndOfString()) {
+        throwException(std::string("Expected \"") + str
+          + "\", but found end of string.");
+      } else {
+        throwException(std::string("Expected \"") + str
+          + "\", but found \"" + excerpt() + "\".");
+      }
     }
   }
 
@@ -154,6 +181,16 @@ private:
 
   bool isEndOfString() {
     return position == addressString.length();
+  }
+
+  Options options() {
+    Options options;
+    expect("(");
+    if (accept("nobidirectional")) {
+      options.noBidirectional = true;
+    }
+    expect(")");
+    return options;
   }
 
   char peek() {

@@ -98,11 +98,13 @@ public:
 
   // Declared in PVSupport.
   virtual bool write(Value const &value,
+      VersionNumber const &versionNumber,
       WriteCallback const &successCallback,
       ErrorCallback const &errorCallback) override;
 
   // Declared in PVSupport.
   virtual bool write(Value &&value,
+      VersionNumber const &versionNumber,
       WriteCallback const &successCallback,
       ErrorCallback const &errorCallback) override;
 
@@ -205,6 +207,7 @@ bool DeviceAccessPVSupport<T>::read(
 template<typename T>
 bool DeviceAccessPVSupport<T>::write(
     Value const &value,
+    VersionNumber const &versionNumber,
     WriteCallback const &successCallback,
     ErrorCallback const &errorCallback) {
   // The write method that takes an rvalue swaps values, so creating a copy of
@@ -212,12 +215,14 @@ bool DeviceAccessPVSupport<T>::write(
   // efficient than actually copying to the destination vector, but it
   // simplifies the code significantly.
   Value valueCopy(value);
-  return this->write(std::move(valueCopy), successCallback, errorCallback);
+  return this->write(
+      std::move(valueCopy), versionNumber, successCallback, errorCallback);
 }
 
 template<typename T>
 bool DeviceAccessPVSupport<T>::write(
     Value &&value,
+    VersionNumber const &versionNumber,
     WriteCallback const &successCallback,
     ErrorCallback const &errorCallback) {
   // We pass a shared pointer to this instead of the raw this pointer into the
@@ -228,9 +233,9 @@ bool DeviceAccessPVSupport<T>::write(
   this->accessor.swap(value);
   bool immediate = this->provider->isSynchronous();
   this->provider->submitIoTask(
-    [sharedThis, immediate, successCallback, errorCallback](){
+    [sharedThis, immediate, successCallback, errorCallback, versionNumber](){
       try {
-        sharedThis->accessor.write();
+        sharedThis->accessor.write(versionNumber);
       } catch (...) {
         try {
           errorCallback(immediate, std::current_exception());

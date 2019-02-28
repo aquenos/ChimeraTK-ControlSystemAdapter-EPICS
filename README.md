@@ -194,7 +194,7 @@ numeric type and the string records only work with process variables of type
 ### Addresses
 
 The addresses (in the record's `INP` or `OUT` field) have the form
-`@applicationOrDeviceName processVariableName data-type`.
+`@applicationOrDeviceName processVariableName data-type (options)`.
 
 The *applicationOrDeviceName* must be the name that has been specified when
 calling the IOC shell command that registered it.
@@ -208,6 +208,14 @@ The *data-type* is optional and specifies the data type of the underlying
 process variable or register. In most cases, the best data-type is detected
 automatically. If explicitly specified, the data type must be `int8`, `uint8`,
 `int16`, `uint16`, `int32`, `uint32`, `float`, `double`, or `string`.
+
+The *options* are optional and are a list of comma-separated strings.
+
+At the moment, the only supported option is `nobidirectional`. If set, this
+option has the effect that output records will not be updated when the process
+variable's value changes on the application or device side, even if such
+bidirectional updates are supported for the process variable. For obvious
+reasons, this option only has an effect for output records.
 
 ### Limitations
 

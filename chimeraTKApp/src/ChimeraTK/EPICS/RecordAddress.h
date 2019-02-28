@@ -2,7 +2,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -49,9 +49,10 @@ public:
   inline RecordAddress(
       std::string const &appOrDevName,
       std::string const &pvName,
-      std::type_info const &valueType, bool valueTypeValid)
-      : appOrDevName(appOrDevName), pvName(pvName), valueType(valueType),
-        valueTypeValid(valueTypeValid) {
+      std::type_info const &valueType, bool valueTypeValid,
+      bool noBidirectional)
+      : appOrDevName(appOrDevName), noBidirectional(noBidirectional),
+        pvName(pvName), valueType(valueType), valueTypeValid(valueTypeValid) {
   }
 
   /**
@@ -84,8 +85,17 @@ public:
   /**
    * Tells whether this record address specifies a value type.
    */
-  inline bool const &hasValueType() const {
+  inline bool hasValueType() const {
     return valueTypeValid;
+  }
+
+  /**
+   * Tells whether the "nobidirectional" flag is set. If this flag is set,
+   * output records shall not be updated when the value changes inside the
+   * device, even if such updates are supported for the process variable.
+   */
+  inline bool isNoBidirectional() const {
+    return noBidirectional;
   }
 
   /**
@@ -99,6 +109,7 @@ public:
 private:
 
   std::string const appOrDevName;
+  bool noBidirectional;
   std::string const pvName;
   std::type_info const &valueType;
   bool const valueTypeValid;

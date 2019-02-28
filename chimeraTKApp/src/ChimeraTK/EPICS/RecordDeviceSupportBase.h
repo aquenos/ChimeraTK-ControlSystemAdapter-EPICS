@@ -43,30 +43,42 @@ public:
    * process-variable name, and the value type.
    */
   RecordDeviceSupportBase(RecordAddress const & address)
-      : pvName(address.getProcessVariableName()),
+      : noBidirectional(address.isNoBidirectional()),
+        pvName(address.getProcessVariableName()),
         pvProvider(PVProviderRegistry::getPVProvider(
           address.getApplicationOrDeviceName())),
+        pvSupport(
+          callForValueTypeInternal<CallCreatePVSupport>(
+            (address.hasValueType() ? address.getValueType()
+              : pvProvider->getDefaultType(pvName)),
+            this)),
         valueType(address.hasValueType() ? address.getValueType()
           : pvProvider->getDefaultType(pvName)) {
-    this->pvSupport = this->callForValueType<CallCreatePVSupport>(this);
   }
 
 protected:
 
   /**
+   * Flag indicating whether support for bidirectional process variables shall
+   * be disabled for this record. This option is only relevant for output
+   * records.
+   */
+  bool const noBidirectional;
+
+  /**
    * Name of the process variable.
    */
-  std::string pvName;
+  std::string const pvName;
 
   /**
    * Pointer to the process variable support.
    */
-  PVProvider::SharedPtr pvProvider;
+  PVProvider::SharedPtr const pvProvider;
 
   /**
    * Shared pointer to the original PV support.
    */
-  std::shared_ptr<PVSupportBase> pvSupport;
+  std::shared_ptr<PVSupportBase> const pvSupport;
 
   /**
    * Type of the process variable's values. This can be the default type or a
@@ -126,28 +138,8 @@ protected:
    */
   template<template<typename> class F, typename... Args, typename R=decltype(F<std::int8_t>()(std::declval<Args>()...))>
   R callForValueType(Args... args) {
-    if (this->valueType == typeid(std::int8_t)) {
-      return F<std::int8_t>()(std::forward<Args>(args)...);
-    } else if (this->valueType == typeid(std::uint8_t)) {
-      return F<std::uint8_t>()(std::forward<Args>(args)...);
-    } else if (this->valueType == typeid(std::int16_t)) {
-      return F<std::int16_t>()(std::forward<Args>(args)...);
-    } else if (this->valueType == typeid(std::uint16_t)) {
-      return F<std::uint16_t>()(std::forward<Args>(args)...);
-    } else if (this->valueType == typeid(std::int32_t)) {
-      return F<std::int32_t>()(std::forward<Args>(args)...);
-    } else if (this->valueType == typeid(std::uint32_t)) {
-      return F<std::uint32_t>()(std::forward<Args>(args)...);
-    } else if (this->valueType == typeid(float)) {
-      return F<float>()(std::forward<Args>(args)...);
-    } else if (this->valueType == typeid(double)) {
-      return F<double>()(std::forward<Args>(args)...);
-    } else if (this->valueType == typeid(std::string)) {
-      return F<std::string>()(std::forward<Args>(args)...);
-    } else {
-      throw std::logic_error(
-        std::string("Unexpected value type: ") + valueType.name());
-    }
+    return RecordDeviceSupportBase::callForValueTypeInternal<F, Args...>(
+      this->valueType, std::forward<Args>(args)...);
   }
 
   /**
@@ -178,6 +170,45 @@ private:
         obj->pvName);
     }
   };
+
+  /**
+   * Instantiates and calls a function object template for the specified value
+   * type.
+   *
+   * In order for this to work correctly, supplied template class must be
+   * default constructible, it must define operator(). The template must be
+   * instantiable for all possible value types and the return value of
+   * operator() must not depend on the value type.
+   *
+   * This template function is used by the protected callForValueType template
+   * function and by the constructor (which needs it before the valueTypeField
+   * has been initialized).
+   */
+  template<template<typename> class F, typename... Args, typename R=decltype(F<std::int8_t>()(std::declval<Args>()...))>
+  static R callForValueTypeInternal(std::type_info const &valueType, Args... args) {
+    if (valueType == typeid(std::int8_t)) {
+      return F<std::int8_t>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(std::uint8_t)) {
+      return F<std::uint8_t>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(std::int16_t)) {
+      return F<std::int16_t>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(std::uint16_t)) {
+      return F<std::uint16_t>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(std::int32_t)) {
+      return F<std::int32_t>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(std::uint32_t)) {
+      return F<std::uint32_t>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(float)) {
+      return F<float>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(double)) {
+      return F<double>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(std::string)) {
+      return F<std::string>()(std::forward<Args>(args)...);
+    } else {
+      throw std::logic_error(
+        std::string("Unexpected value type: ") + valueType.name());
+    }
+  }
 
 };
 

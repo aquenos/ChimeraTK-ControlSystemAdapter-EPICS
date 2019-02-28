@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2019 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -124,11 +124,13 @@ public:
 
   // Declared in PVSupport.
   virtual bool write(Value const &value,
+      VersionNumber const &versionNumber,
       WriteCallback const &successCallback,
       ErrorCallback const &errorCallback) override;
 
   // Declared in PVSupport.
   virtual bool write(Value &&value,
+      VersionNumber const &versionNumber,
       WriteCallback const &successCallback,
       ErrorCallback const &errorCallback) override;
 

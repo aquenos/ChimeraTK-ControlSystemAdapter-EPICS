@@ -226,6 +226,7 @@ public:
    */
   bool write(
       Value const &value,
+      VersionNumber const &versionNumber,
       WriteCallback const &successCallback,
       ErrorCallback const &errorCallback);
 
@@ -236,6 +237,7 @@ public:
    */
   bool write(
       Value &&value,
+      VersionNumber const &versionNumber,
       WriteCallback const &successCallback,
       ErrorCallback const &errorCallback);
 
@@ -324,6 +326,16 @@ private:
    * not in use any longer.
    */
   std::forward_list<std::weak_ptr<ControlSystemAdapterPVSupport<T>>> pvSupports;
+
+  /**
+   * Calls the specified notify callback with the current value of the PV. This
+   * is guaranteed to happen before notifying it with a regular notification.
+   * The callback must still take care of calling notifyFinished().
+   *
+   * This method must only be called while holding a lock on the mutex. It is
+   * intended for use by the ControlSystemAdapterPVSupport.
+   */
+  void doInitialNotification(NotifyCallback const &callback);
 
   /**
    * Called by each ControlSystemAdapterPVSupport when it has finished the

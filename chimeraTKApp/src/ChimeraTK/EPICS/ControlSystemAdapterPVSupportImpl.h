@@ -92,12 +92,6 @@ void ControlSystemAdapterPVSupport<T>::notify(
     throw std::logic_error(
       "This process variable does not support change notifications because it is not readable.");
   }
-  // When this is the first callback that is registered, we have to call read()
-  // once. The reason for this is that notifications from the
-  // ControlSystemPVManager are discarded if there is not at least one
-  // registered callback, so values might have been send by the application, but
-  // not received by us yet.
-  bool firstCallback = false;
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
     // When a callback is registered and there was no callback registered
@@ -105,7 +99,6 @@ void ControlSystemAdapterPVSupport<T>::notify(
     // Conversely, when there was a callback registered before and we remove
     // this callback now, we have to decrement the count.
     if (!this->notifyCallback && successCallback) {
-      firstCallback = this->shared->notifyCallbackCount == 0;
       ++this->shared->notifyCallbackCount;
     } else if (this->notifyCallback && !successCallback) {
       --this->shared->notifyCallbackCount;
@@ -123,9 +116,17 @@ void ControlSystemAdapterPVSupport<T>::notify(
       this->shared->notifyFinished();
       this->notificationPending = false;
     }
-  }
-  if (firstCallback) {
-    this->shared->read(ReadCallback(), ErrorCallback());
+    // We want the callback to be notified with the current value. If we did not
+    // do this, there might be no notification for a very long time (if the
+    // value did not change) and the record might potentially have an old value
+    // for that time.
+    // We have to call doInitialNotification while holding the mutex, but the
+    // callback that we pass will be called from the notification thread,
+    // without holding the mutex, so there is no risk of a dead-lock.
+    if (successCallback && !this->notificationPending) {
+      this->shared->doInitialNotification(successCallback);
+      this->notificationPending = true;
+    }
   }
 }
 
@@ -152,17 +153,21 @@ bool ControlSystemAdapterPVSupport<T>::read(
 template<typename T>
 bool ControlSystemAdapterPVSupport<T>::write(
     Value const &value,
+    VersionNumber const &versionNumber,
     WriteCallback const &successCallback,
     ErrorCallback const &errorCallback) {
-  return this->shared->write(value, successCallback, errorCallback);
+  return this->shared->write(
+      value, versionNumber, successCallback, errorCallback);
 }
 
 template<typename T>
 bool ControlSystemAdapterPVSupport<T>::write(
     Value &&value,
+    VersionNumber const &versionNumber,
     WriteCallback const &successCallback,
     ErrorCallback const &errorCallback) {
-  return this->shared->write(value, successCallback, errorCallback);
+  return this->shared->write(
+      value, versionNumber, successCallback, errorCallback);
 }
 
 template<typename T>

@@ -139,6 +139,7 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
 template<typename T>
 bool ControlSystemAdapterSharedPVSupport<T>::write(
     Value const &value,
+    VersionNumber const &versionNumber,
     WriteCallback const &successCallback,
     ErrorCallback const &errorCallback) {
   // The write method that takes an rvalue swaps values, so creating a copy of
@@ -146,12 +147,14 @@ bool ControlSystemAdapterSharedPVSupport<T>::write(
   // efficient than actually copying to the destination vector, but it
   // simplifies the code significantly.
   Value valueCopy(value);
-  return this->write(std::move(valueCopy), successCallback, errorCallback);
+  return this->write(
+      std::move(valueCopy), versionNumber, successCallback, errorCallback);
 }
 
 template<typename T>
 bool ControlSystemAdapterSharedPVSupport<T>::write(
     Value &&value,
+    VersionNumber const &versionNumber,
     WriteCallback const &successCallback,
     ErrorCallback const &errorCallback) {
   try {
@@ -162,7 +165,6 @@ bool ControlSystemAdapterSharedPVSupport<T>::write(
     auto &destination = this->processArray->accessChannel(0);
     std::swap(destination, value);
     this->initialValueAvailable = false;
-    VersionNumber versionNumber;
     this->processArray->write(versionNumber);
     // We also update the last value and version number, so that if another
     // record reads the value, it gets the updated version. We can swap here
@@ -267,6 +269,25 @@ bool ControlSystemAdapterSharedPVSupport<T>::readyForNextNotification() {
   // This method is only called while holding a lock on the mutex, so we do not
   // have to acquire a lock here.
   return this->notificationPendingCount == 0;
+}
+
+template<typename T>
+void ControlSystemAdapterSharedPVSupport<T>::doInitialNotification(
+    NotifyCallback const &callback) {
+  // The code calling this method already acquires a lock on the shared mutex.
+  std::shared_ptr<Value const> value;
+  VersionNumber versionNumber;
+  if (this->initialValueAvailable) {
+    value = std::make_shared<Value>(this->processArray->accessChannel(0));
+    versionNumber = this->processArray->getVersionNumber();
+  } else {
+    value = this->lastValue;
+    versionNumber = this->lastVersionNumber;
+  }
+  ++this->notificationPendingCount;
+  this->pvProvider->runInNotificationThread([callback, value, versionNumber]() {
+        callback(value, versionNumber);
+      });
 }
 
 template<typename T>

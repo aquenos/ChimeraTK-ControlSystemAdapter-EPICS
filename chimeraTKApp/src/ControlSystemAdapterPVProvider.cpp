@@ -182,6 +182,17 @@ void ControlSystemAdapterPVProvider::insertCreatePVSupportFunc() {
           &ControlSystemAdapterPVProvider::createPVSupportInternal<T>));
 }
 
+void ControlSystemAdapterPVProvider::runInNotificationThread(
+    std::function<void()> const &task) {
+  // This method is only called while already holding a lock on the mutex.
+  if (this->notificationThreadShutdownRequested) {
+    throw std::runtime_error(
+      "Tasks cannot be submitted because this PV provider is being destroyed.");
+  }
+  this->tasks.push(task);
+  this->wakeUpNotificationThread();
+}
+
 void ControlSystemAdapterPVProvider::runNotificationThread() {
   // We create a read-any group that will allow us to wait for any of the PVs
   // (supporting notifications) to receive an update notification. This list of
@@ -205,6 +216,16 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
     std::function<void()> notifyFunction;
     {
       std::unique_lock<std::recursive_mutex> lock(this->mutex);
+      // If there are any notification tasks, we execute them now.
+      while (!this->tasks.empty()) {
+        auto task = std::move(this->tasks.front());
+        this->tasks.pop();
+        // We do not want to hold the lock on the mutex while executing the
+        // task.
+        lock.unlock();
+        task();
+        lock.lock();
+      }
       // If a shutdown has been requested, we quit immediately.
       if (this->notificationThreadShutdownRequested) {
         return;
@@ -220,11 +241,30 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
         // notification.
         while (!sharedPVSupport->readyForNextNotification()) {
           this->notificationThreadCv.wait(lock);
+          // If there are any notification tasks, we execute them now. We have
+          // to do this here because we might sleep again if the PV support is
+          // still not ready for the next notification.
+          while (!this->tasks.empty()) {
+            auto task = std::move(this->tasks.front());
+            this->tasks.pop();
+            // We do not want to hold the lock on the mutex while executing the
+            // task.
+            lock.unlock();
+            task();
+            lock.lock();
+          }
           // If a shutdown has been requested, we quit immediately.
           if (this->notificationThreadShutdownRequested) {
             return;
           }
         }
+        // We know that at that point, the task queue is empty. Tasks are only
+        // added while holding a lock on the mutex and we checked that the queue
+        // is empty after acquiring the mutex.
+        // This is important because we use the task queue to notify callbacks
+        // with the current value and the same callback will only be called
+        // when there actually is a new value (that we might accept right in the
+        // next line).
         if (notification.accept()) {
           notifyFunction = sharedPVSupport->doNotify();
         }
