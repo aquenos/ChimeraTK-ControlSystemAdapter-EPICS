@@ -27,6 +27,7 @@ extern "C" {
 }
 
 #if EPICS_VERSION > 3 || (EPICS_VERSION == 3 && EPICS_REVISION >= 16)
+#  define CHIMERATK_EPICS_INT64_SUPPORTED 1
 #  define CHIMERATK_EPICS_LONG_STRING_SUPPORTED 1
 #endif
 
@@ -37,6 +38,10 @@ extern "C" {
 #include <aoRecord.h>
 #include <biRecord.h>
 #include <boRecord.h>
+#ifdef CHIMERATK_EPICS_INT64_SUPPORTED
+#  include <int64inRecord.h>
+#  include <int64outRecord.h>
+#endif // CHIMERATK_EPICS_INT64_SUPPORTED
 #include <longinRecord.h>
 #include <longoutRecord.h>
 #ifdef CHIMERATK_EPICS_LONG_STRING_SUPPORTED
@@ -102,6 +107,20 @@ struct RecordDeviceSupportTypeHelper<::boRecord> {
   using type =
     FixedScalarRecordDeviceSupport<::boRecord>;
 };
+
+#ifdef CHIMERATK_EPICS_INT64_SUPPORTED
+template<>
+struct RecordDeviceSupportTypeHelper<::int64inRecord> {
+  using type =
+    FixedScalarRecordDeviceSupport<::int64inRecord>;
+};
+
+template<>
+struct RecordDeviceSupportTypeHelper<::int64outRecord> {
+  using type =
+    FixedScalarRecordDeviceSupport<::int64outRecord>;
+};
+#endif // CHIMERATK_EPICS_INT64_SUPPORTED
 
 template<>
 struct RecordDeviceSupportTypeHelper<::longinRecord> {

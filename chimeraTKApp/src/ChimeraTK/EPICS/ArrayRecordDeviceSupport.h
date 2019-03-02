@@ -167,6 +167,12 @@ public:
       checkFtvl(DBF_DOUBLE);
     } else if (this->valueType == typeid(std::string)) {
       checkFtvl(DBF_STRING);
+    } else if (this->valueType == typeid(std::int64_t)) {
+      throw std::invalid_argument(
+        "The value type int64 is not support by this record.");
+    } else if (this->valueType == typeid(std::uint64_t)) {
+      throw std::invalid_argument(
+        "The value type uint64 is not support by this record.");
     } else {
       throw std::logic_error(
         std::string("Unexpected value type: ") + valueType.name());

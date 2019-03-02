@@ -17,6 +17,7 @@ DBD += ChimeraTK-ControlSystemAdapter-EPICS.dbd
 
 ChimeraTK-ControlSystemAdapter-EPICS_DBD += common.dbd
 ifdef BASE_3_16
+ChimeraTK-ControlSystemAdapter-EPICS_DBD += int64.dbd
 ChimeraTK-ControlSystemAdapter-EPICS_DBD += longString.dbd
 endif
 

@@ -234,6 +234,10 @@ private:
       return typeid(std::int32_t);
     } else if (accept("uint32")) {
       return typeid(std::uint32_t);
+    } else if (accept("int64")) {
+      return typeid(std::int64_t);
+    } else if (accept("uint64")) {
+      return typeid(std::uint64_t);
     } else if (accept("float")) {
       return typeid(float);
     } else if (accept("double")) {

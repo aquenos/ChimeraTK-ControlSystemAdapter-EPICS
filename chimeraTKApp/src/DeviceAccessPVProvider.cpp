@@ -41,6 +41,8 @@ DeviceAccessPVProvider::DeviceAccessPVProvider(
   this->insertCreatePVSupportFunc<std::uint16_t>();
   this->insertCreatePVSupportFunc<std::int32_t>();
   this->insertCreatePVSupportFunc<std::uint32_t>();
+  this->insertCreatePVSupportFunc<std::int64_t>();
+  this->insertCreatePVSupportFunc<std::uint64_t>();
   this->insertCreatePVSupportFunc<float>();
   this->insertCreatePVSupportFunc<double>();
   this->insertCreatePVSupportFunc<std::string>();

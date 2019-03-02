@@ -292,6 +292,20 @@ epicsExportAddress(dset, devBiChimeraTK);
 auto devBoChimeraTK = deviceSupportStruct<::boRecord>();
 epicsExportAddress(dset, devBoChimeraTK);
 
+#ifdef CHIMERATK_EPICS_INT64_SUPPORTED
+/**
+ * int64in record type.
+ */
+auto devInt64inChimeraTK = deviceSupportStruct<::int64inRecord>();
+epicsExportAddress(dset, devInt64inChimeraTK);
+
+/**
+ * int64out record type.
+ */
+auto devInt64outChimeraTK = deviceSupportStruct<::int64outRecord>();
+epicsExportAddress(dset, devInt64outChimeraTK);
+#endif // CHIMERATK_EPICS_INT64_SUPPORTED
+
 /**
  * longin record type.
  */

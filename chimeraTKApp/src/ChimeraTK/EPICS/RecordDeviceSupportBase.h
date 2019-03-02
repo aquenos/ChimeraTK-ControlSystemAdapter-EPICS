@@ -112,6 +112,10 @@ protected:
       return F<std::int32_t>()();
     } else if (this->valueType == typeid(std::uint32_t)) {
       return F<std::uint32_t>()();
+    } else if (this->valueType == typeid(std::int64_t)) {
+      return F<std::int64_t>()();
+    } else if (this->valueType == typeid(std::uint64_t)) {
+      return F<std::uint64_t>()();
     } else if (this->valueType == typeid(float)) {
       return F<float>()();
     } else if (this->valueType == typeid(double)) {
@@ -198,6 +202,10 @@ private:
       return F<std::int32_t>()(std::forward<Args>(args)...);
     } else if (valueType == typeid(std::uint32_t)) {
       return F<std::uint32_t>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(std::int64_t)) {
+      return F<std::int64_t>()(std::forward<Args>(args)...);
+    } else if (valueType == typeid(std::uint64_t)) {
+      return F<std::uint64_t>()(std::forward<Args>(args)...);
     } else if (valueType == typeid(float)) {
       return F<float>()(std::forward<Args>(args)...);
     } else if (valueType == typeid(double)) {

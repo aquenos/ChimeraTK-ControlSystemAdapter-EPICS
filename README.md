@@ -182,8 +182,8 @@ EPICS Records
 
 This device support supports the `aai`, `aao`, `ai`, `ao`, `bi`, `bo`, `longin`,
 `longout`, `mbbi`, `mbbo`, `mbbiDirect`, `mbboDirect`, `stringin`, and `stringout`
-records. When using EPICS Base 3.16 or newer, the `lsi` and `lso` records are
-supported as well.
+records. When using EPICS Base 3.16 or newer, the `int64in`, `int64out`, `lsi`
+and `lso` records are supported as well.
 
 The `DTYP` is `ChimeraTK` for all record types.
 
@@ -207,7 +207,8 @@ process variables or registers exist.
 The *data-type* is optional and specifies the data type of the underlying
 process variable or register. In most cases, the best data-type is detected
 automatically. If explicitly specified, the data type must be `int8`, `uint8`,
-`int16`, `uint16`, `int32`, `uint32`, `float`, `double`, or `string`.
+`int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`, `float`, `double`, or
+`string`.
 
 The *options* are optional and are a list of comma-separated strings.
 
@@ -229,6 +230,8 @@ When using a ChimeraTK Device Access, this can be achieved by explicitly
 specifying the data type as part of the address. When using the ChimeraTK
 Control System Adapter, the data type of the PV is fixed and thus the record's
 data type must be set to match it.
+
+The `aai` and `aao` records do not support the `int64` and `uint64` data-types.
 
 #### `lsi` and `lso` record
 
