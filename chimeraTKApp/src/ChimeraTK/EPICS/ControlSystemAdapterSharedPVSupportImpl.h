@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2020 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -42,13 +42,17 @@ ControlSystemAdapterSharedPVSupport<T>::ControlSystemAdapterSharedPVSupport(
     ControlSystemAdapterPVProvider::SharedPtr const &pvProvider,
     std::string const &name, std::size_t index)
     : ControlSystemAdapterSharedPVSupportBase(index),
-      initialValueAvailable(true), mutex(pvProvider->mutex), name(name),
-      notificationPendingCount(0), notifyCallbackCount(0),
-      pvProvider(pvProvider) {
+      mutex(pvProvider->mutex), name(name), notificationPendingCount(0),
+      notifyCallbackCount(0), pvProvider(pvProvider) {
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
     this->processArray = this->pvProvider->pvManager
       ->template getProcessArray<T>(name);
+    auto initialValue = std::make_shared<std::vector<T>>(
+        this->processArray->getNumberOfSamples());
+    std::swap(*initialValue, this->processArray->accessChannel(0));
+    this->lastValue = initialValue;
+    this->lastVersionNumber = this->processArray->getVersionNumber();
   }
 }
 
@@ -81,13 +85,7 @@ std::size_t ControlSystemAdapterSharedPVSupport<T>::getNumberOfElements() {
 template<typename T>
 std::tuple<typename PVSupport<T>::Value, VersionNumber> ControlSystemAdapterSharedPVSupport<T>::initialValue() {
   std::lock_guard<std::recursive_mutex> lock(this->mutex);
-  if (this->initialValueAvailable) {
-    return std::make_tuple(
-      this->processArray->accessChannel(0),
-      this->processArray->getVersionNumber());
-  } else {
-    return std::make_tuple(*(this->lastValue), this->lastVersionNumber);
-  }
+  return std::make_tuple(*(this->lastValue), this->lastVersionNumber);
 }
 
 template<typename T>
@@ -118,7 +116,12 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
         std::swap(*newValue, this->processArray->accessChannel(0));
         this->lastValue = newValue;
         this->lastVersionNumber = this->processArray->getVersionNumber();
-        this->initialValueAvailable = false;
+      } else {
+        // If the process array does not have the wait_for_new_data flag,
+        // readLatest must always return true, everything else indicates a bug
+        // in the process array implementation.
+        throw std::logic_error(
+          "ProcessArray::readLatest() returned false even so AccessMode::wait_for_new_data is not set.");
       }
     }
     value = this->lastValue;
@@ -164,7 +167,6 @@ bool ControlSystemAdapterSharedPVSupport<T>::write(
     }
     auto &destination = this->processArray->accessChannel(0);
     std::swap(destination, value);
-    this->initialValueAvailable = false;
     this->processArray->write(versionNumber);
     // We also update the last value and version number, so that if another
     // record reads the value, it gets the updated version. We can swap here
@@ -207,7 +209,6 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
   std::swap(*newValue, this->processArray->accessChannel(0));
   this->lastValue = newValue;
   this->lastVersionNumber = this->processArray->getVersionNumber();
-  this->initialValueAvailable = false;
   // If there are no notify callbacks, we are done.
   if (this->notifyCallbackCount == 0) {
     return std::function<void()>();
@@ -277,13 +278,8 @@ void ControlSystemAdapterSharedPVSupport<T>::doInitialNotification(
   // The code calling this method already acquires a lock on the shared mutex.
   std::shared_ptr<Value const> value;
   VersionNumber versionNumber;
-  if (this->initialValueAvailable) {
-    value = std::make_shared<Value>(this->processArray->accessChannel(0));
-    versionNumber = this->processArray->getVersionNumber();
-  } else {
-    value = this->lastValue;
-    versionNumber = this->lastVersionNumber;
-  }
+  value = this->lastValue;
+  versionNumber = this->lastVersionNumber;
   ++this->notificationPendingCount;
   this->pvProvider->runInNotificationThread([callback, value, versionNumber]() {
         callback(value, versionNumber);

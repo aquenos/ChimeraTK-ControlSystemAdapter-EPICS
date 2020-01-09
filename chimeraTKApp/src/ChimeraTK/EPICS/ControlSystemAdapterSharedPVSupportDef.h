@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2020 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -198,11 +198,11 @@ public:
   std::size_t getNumberOfElements();
 
   /**
-   * Returns the initial value and version number of the underlying
-   * ProcessArray. This method must only be called before reading, writing, and
-   * notifying a callback. Calling this method at a later point in time results
-   * in an exception because the initial value is not available any longer after
-   * such an action.
+   * Returns the current value and version number of the underlying
+   * ProcessArray. As long as no read or write operations have happened and no
+   * notifications have been received, this will be the initial value of the
+   * underlying ProcessArray. Otherwise, it will be the value that was read,
+   * written, or received by the last operation.
    */
   std::tuple<Value, VersionNumber> initialValue();
 
@@ -268,12 +268,6 @@ private:
    * doNotify() or the read(...) method or written by the write(...) method.
    */
   std::shared_ptr<Value const> lastValue;
-
-  /**
-   * Flag indicating whether the initial value is still available. This flag is
-   * set to false on the first action modifying the ProcessArray's value.
-   */
-  bool initialValueAvailable;
 
   /**
    * Mutex for which a lock is acquired when modifying shared state. This is the
