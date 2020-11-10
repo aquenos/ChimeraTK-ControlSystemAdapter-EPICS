@@ -42,19 +42,35 @@ extern "C" {
   static const iocshArg * const iocshChimeraTKConfigureApplicationArgs[] = {
       &iocshChimeraTKConfigureApplicationArg0 };
   static const iocshFuncDef iocshChimeraTKConfigureApplicationFuncDef = {
-      "chimeraTKConfigureApplication", 1, iocshChimeraTKConfigureApplicationArgs };
+      "chimeraTKConfigureApplication", 1, iocshChimeraTKConfigureApplicationArgs};
+
+  // runAppInitHook needs access to the pvManager
+  boost::weak_ptr<ControlSystemPVManager> pvManager;
 
   // Init hook that takes care of actually starting the application. This hook
   // is registered by the iocshChimeraTKConfigureApplicationFunc function.
   static void runAppInitHook(::initHookState state) noexcept {
     if (state == initHookAtIocRun) {
       try {
-        ApplicationBase &application = ApplicationBase::getInstance();
+        // check for variables not yet initialised - we must guarantee that all to-application variables are written
+        // exactly once at server start.
+        auto pvm = pvManager.lock();
+        for(auto& pv : pvm->getAllProcessVariables()) {
+          if(!pv->isWriteable()) continue;
+          if(pv->getVersionNumber() == ChimeraTK::VersionNumber(nullptr)) {
+            // The variable has not yet been written. Do it now, even if we just send a 0.
+            pv->write();
+          }
+        }
+
+        ApplicationBase& application = ApplicationBase::getInstance();
         application.run();
-      } catch (std::exception &e) {
+      }
+      catch(std::exception& e) {
         errorPrintf("Could not start the application: %s", e.what());
         return;
-      } catch (...) {
+      }
+      catch(...) {
         errorPrintf("Could not start the application: Unknown error.");
       }
     }
@@ -115,6 +131,7 @@ extern "C" {
     }
     // We delay starting the application thread until the IOC is
     // started.
+    pvManager = pvManagers.first;
     ::initHookRegister(runAppInitHook);
   }
 
