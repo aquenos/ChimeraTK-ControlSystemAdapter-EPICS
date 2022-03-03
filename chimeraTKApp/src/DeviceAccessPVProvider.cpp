@@ -56,7 +56,7 @@ DeviceAccessPVProvider::~DeviceAccessPVProvider() {
 
 std::type_info const &DeviceAccessPVProvider::getDefaultType(
     std::string const &processVariableName) {
-  auto &registerCatalog = this->device.getRegisterCatalogue();
+  auto registerCatalog = this->device.getRegisterCatalogue();
   RegisterPath registerPath(processVariableName);
   if (!registerCatalog.hasRegister(registerPath)) {
     throw std::invalid_argument(
@@ -64,9 +64,9 @@ std::type_info const &DeviceAccessPVProvider::getDefaultType(
       + "' does not exist.");
   }
   auto registerInfo = registerCatalog.getRegister(registerPath);
-  auto &dataDescriptor = registerInfo->getDataDescriptor();
+  auto& dataDescriptor = registerInfo.getDataDescriptor();
   switch (dataDescriptor.fundamentalType()) {
-    case RegisterInfo::FundamentalType::numeric:
+    case DataDescriptor::FundamentalType::numeric:
       if (dataDescriptor.isIntegral()) {
         if (dataDescriptor.isSigned()) {
           return typeid(std::int32_t);
@@ -76,7 +76,7 @@ std::type_info const &DeviceAccessPVProvider::getDefaultType(
       } else {
         return typeid(double);
       }
-    case RegisterInfo::FundamentalType::boolean:
+    case DataDescriptor::FundamentalType::boolean:
       return typeid(std::uint32_t);
     default:
       return typeid(nullptr_t);
