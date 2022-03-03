@@ -64,7 +64,7 @@ std::type_info const &DeviceAccessPVProvider::getDefaultType(
       + "' does not exist.");
   }
   auto registerInfo = registerCatalog.getRegister(registerPath);
-  auto& dataDescriptor = registerInfo.getDataDescriptor();
+  auto &dataDescriptor = registerInfo.getDataDescriptor();
   switch (dataDescriptor.fundamentalType()) {
     case DataDescriptor::FundamentalType::numeric:
       if (dataDescriptor.isIntegral()) {
