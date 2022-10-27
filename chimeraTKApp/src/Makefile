@@ -13,7 +13,7 @@ LIBRARY_IOC += ChimeraTK-ControlSystemAdapter-EPICS
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
 # install chimeraTK.dbd into <top>/dbd
-DBD += ChimeraTK-ControlSystemAdapter-EPICS.dbd
+DBDCAT += ChimeraTK-ControlSystemAdapter-EPICS.dbd
 
 ChimeraTK-ControlSystemAdapter-EPICS_DBD += common.dbd
 ifdef BASE_3_16

@@ -25,9 +25,7 @@
 #include <string>
 #include <typeinfo>
 
-extern "C" {
 #include <dbLink.h>
-} // extern "C"
 
 namespace ChimeraTK {
 namespace EPICS {
