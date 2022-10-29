@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -21,6 +21,8 @@
 #include <sstream>
 #include <string>
 #include <utility>
+
+#include <ChimeraTK/SupportedUserTypes.h>
 
 #include "ChimeraTK/EPICS/RecordAddress.h"
 
@@ -222,6 +224,8 @@ private:
   std::type_info const & valueType() {
     if (isEndOfString()) {
       throwException("Expected type specifier, but found end of string.");
+    } else if (accept("bool")) {
+      return typeid(ChimeraTK::Boolean);
     } else if (accept("int8")) {
       return typeid(std::int8_t);
     } else if (accept("uint8")) {
@@ -244,6 +248,8 @@ private:
       return typeid(double);
     } else if (accept("string")) {
       return typeid(std::string);
+    } else if (accept("void")) {
+      return typeid(ChimeraTK::Void);
     } else {
       throwException(std::string("Expected type specifier, but found \"")
         + excerpt() + "\".");

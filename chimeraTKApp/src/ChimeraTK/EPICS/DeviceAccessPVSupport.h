@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -30,6 +30,57 @@
 
 namespace ChimeraTK {
 namespace EPICS {
+
+namespace detail {
+
+/**
+ * Helper class for dealing with different accessor types depending on the value
+ * type.
+ */
+template<typename T>
+struct DeviceAccessPVSupportHelper {
+
+  using AccessorType = OneDRegisterAccessor<T>;
+
+  static inline AccessorType getAccessor(
+      Device &device, std::string const &registerName) {
+    return device.template getOneDRegisterAccessor<T>(registerName);
+  }
+
+  static inline std::size_t getNElements(OneDRegisterAccessor<T> &accessor) {
+    return accessor.getNElements();
+  }
+
+  static inline void swap(
+      OneDRegisterAccessor<T> &accessor, std::vector<T> &value) {
+    return accessor.swap(value);
+  }
+
+};
+
+template<>
+struct DeviceAccessPVSupportHelper<ChimeraTK::Void> {
+
+  using AccessorType = VoidRegisterAccessor;
+
+  static inline AccessorType getAccessor(
+      Device &device, std::string const &registerName) {
+    return device.getVoidRegisterAccessor(registerName);
+  }
+
+  static inline std::size_t getNElements(VoidRegisterAccessor &accessor) {
+    return 1;
+  }
+
+  static inline void swap(
+      VoidRegisterAccessor &accessor, std::vector<ChimeraTK::Void> &value) {
+    // A variable of type void does not have an associated value, so swapping
+    // effectively is a no-op.
+  }
+
+};
+
+} // namespace detail
 
 /**
  * PVSupport implementation used by the DeviceAccessPVProvider.
@@ -113,7 +164,7 @@ private:
   /**
    * Accessor that is used for accessing the process variable.
    */
-  OneDRegisterAccessor<T> accessor;
+  typename detail::DeviceAccessPVSupportHelper<T>::AccessorType accessor;
 
   /**
    * PV provider that created this instance.
@@ -126,7 +177,9 @@ template<typename T>
 DeviceAccessPVSupport<T>::DeviceAccessPVSupport(
     DeviceAccessPVProvider::SharedPtr provider,
     std::string const &registerName)
-    : accessor(provider->device.template getOneDRegisterAccessor<T>(registerName)),
+    : accessor(
+        detail::DeviceAccessPVSupportHelper<T>::getAccessor(
+            provider->device, registerName)),
       provider(provider) {
 }
 
@@ -146,14 +199,15 @@ bool DeviceAccessPVSupport<T>::canWrite() {
 
 template<typename T>
 std::size_t DeviceAccessPVSupport<T>::getNumberOfElements() {
-  return this->accessor.getNElements();
+  return detail::DeviceAccessPVSupportHelper<T>::getNElements(this->accessor);
 }
 
 template<typename T>
 std::tuple<typename PVSupport<T>::Value, VersionNumber> DeviceAccessPVSupport<T>::initialValue() {
   this->accessor.read();
-  Value value(this->accessor.getNElements());
-  this->accessor.swap(value);
+  Value value(
+      detail::DeviceAccessPVSupportHelper<T>::getNElements(this->accessor));
+  detail::DeviceAccessPVSupportHelper<T>::swap(this->accessor, value);
   return std::make_tuple(
       std::move(value),
       this->accessor.getVersionNumber());
@@ -171,10 +225,13 @@ bool DeviceAccessPVSupport<T>::read(
   bool immediate = this->provider->isSynchronous();
   this->provider->submitIoTask(
     [sharedThis, immediate, successCallback, errorCallback](){
-      Value value(sharedThis->accessor.getNElements());
+      Value value(
+          detail::DeviceAccessPVSupportHelper<T>::getNElements(
+              sharedThis->accessor));
       try {
         sharedThis->accessor.read();
-        sharedThis->accessor.swap(value);
+        detail::DeviceAccessPVSupportHelper<T>::swap(
+            sharedThis->accessor, value);
       } catch (...) {
         try {
           errorCallback(immediate, std::current_exception());
@@ -230,7 +287,7 @@ bool DeviceAccessPVSupport<T>::write(
   // lambda expression was running, the raw pointer would be invalid. This
   // cannot happen when using a shared pointer.
   auto sharedThis = this->shared_from_this();
-  this->accessor.swap(value);
+  detail::DeviceAccessPVSupportHelper<T>::swap(this->accessor, value);
   bool immediate = this->provider->isSynchronous();
   this->provider->submitIoTask(
     [sharedThis, immediate, successCallback, errorCallback, versionNumber](){

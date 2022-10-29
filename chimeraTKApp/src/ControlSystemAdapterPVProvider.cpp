@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -50,6 +50,8 @@ ControlSystemAdapterPVProvider::ControlSystemAdapterPVProvider(
   this->insertCreatePVSupportFunc<float>();
   this->insertCreatePVSupportFunc<double>();
   this->insertCreatePVSupportFunc<std::string>();
+  this->insertCreatePVSupportFunc<ChimeraTK::Boolean>();
+  this->insertCreatePVSupportFunc<ChimeraTK::Void>();
   // We have to create a vector of all PVs that support notifications. We have
   // to create this vector here because it is needed in the notification thread
   // and when creating PV supports, so we would need extra synchronization if we

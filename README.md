@@ -206,9 +206,9 @@ process variables or registers exist.
 
 The *data-type* is optional and specifies the data type of the underlying
 process variable or register. In most cases, the best data-type is detected
-automatically. If explicitly specified, the data type must be `int8`, `uint8`,
-`int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`, `float`, `double`, or
-`string`.
+automatically. If explicitly specified, the data type must be `bool`, `int8`,
+`uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`, `float`,
+ `double`, `string`, or `void`.
 
 The *options* are optional and are a list of comma-separated strings.
 
@@ -226,12 +226,16 @@ When using an `aai` or `aao` record, the data type used by the record (and
 specified in the record's `FTVL` field) must match the type of the underlying
 process variable or register (except for signed / unsigned conversion).
 
+As an exception to this rule, the `bool` data type is supported when combined
+with an `FTVL` of `CHAR`, `SHORT`, or `LONG`.
+
 When using a ChimeraTK Device Access, this can be achieved by explicitly
 specifying the data type as part of the address. When using the ChimeraTK
 Control System Adapter, the data type of the PV is fixed and thus the record's
 data type must be set to match it.
 
-The `aai` and `aao` records do not support the `int64` and `uint64` data-types.
+The `aai` and `aao` records do not support the `int64`, `uint64`, and `void`
+data-types.
 
 #### `lsi` and `lso` record
 
@@ -309,7 +313,7 @@ Copyright information
 
 Copyright notice for the ChimeraTK Control System Adapter for EPICS:
 
-Copyright 2017-2018 aquenos GmbH
+Copyright 2017-2022 aquenos GmbH
 
 The ChimeraTK Control System Adapter for EPICS is free software: you can
 redistribute it and/or modify it under the terms of the GNU Lesser General

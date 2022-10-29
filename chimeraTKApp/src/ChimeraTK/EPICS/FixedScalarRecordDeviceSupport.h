@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2019 aquenos GmbH
+ * Copyright 2015-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -129,6 +129,47 @@ protected:
    * Pointer to the record structure.
    */
   RecordType *record;
+
+  /**
+   * Converts from the type of the record’s value field to the type of the
+   * underlying process variable.
+   */
+  template<typename T>
+  T convertFromRecordValueType(RecordValueType value) {
+    return static_cast<T>(value);
+  }
+
+  /**
+   * Template specialization of convertFromRecordValueType for the Void type.
+   *
+   * A Void does not have an associated value, so converting to Void is done by
+   * simply constructing a new instance.
+   */
+  template<>
+  ChimeraTK::Void convertFromRecordValueType<ChimeraTK::Void>(
+      RecordValueType value) {
+    return ChimeraTK::Void();
+  }
+
+  /**
+   * Converts from the type of the underlying process variable to the type of
+   * the record’s value field.
+   *
+  */
+  template<typename T>
+  RecordValueType convertToRecordValueType(T value) {
+    return static_cast<RecordValueType>(value);
+  }
+
+  /**
+   * Specialization of convertToRecordValueType for the Void type.
+   *
+   * A Void does not have an associated value, so when we convert from a Void,
+   * we use a numeric value of zero.
+   */
+  RecordValueType convertToRecordValueType(ChimeraTK::Void value) {
+    return static_cast<RecordValueType>(0);
+  }
 
   /**
    * Returns a reference to the record's RVAL or VAL field.
@@ -349,7 +390,7 @@ private:
                 << " elements, but the record needs exactly one element.";
             throw std::logic_error(oss.str());
           }
-          this->notifyValue = static_cast<RecordValueType>((*value)[0]);
+          this->notifyValue = this->convertToRecordValueType((*value)[0]);
           this->notifyVersionNumber = versionNumber;
           ensureScanIoRequest(this->ioIntrModeScanPvt);
         },
@@ -438,7 +479,7 @@ private:
               << " elements, but the record needs exactly one element.";
           throw std::logic_error(oss.str());
         }
-        this->readValue = static_cast<RecordValueType>((*value)[0]);
+        this->readValue = this->convertToRecordValueType((*value)[0]);
         this->readVersionNumber = versionNumber;
         if (!immediate) {
           ::callbackRequestProcessCallback(
@@ -627,8 +668,8 @@ private:
             << " elements, but the record needs exactly one element.";
         throw std::logic_error(oss.str());
       }
-      this->getValueField() = static_cast<RecordValueType>(value[0]);
-      this->value = value[0];
+      this->value = this->convertToRecordValueType(value[0]);
+      this->getValueField() = this->value;
       this->versionNumber = std::get<1>(valueTimeStampAndVersion);
       this->versionNumberValid = true;
       this->updateTimeStamp(this->versionNumber);
@@ -660,7 +701,7 @@ private:
           // that we wrote. However, there is no need to process the record if
           // the received value is in fact the same one as the last value.
           RecordValueType valueAsScalar
-            = static_cast<RecordValueType>((*value)[0]);
+            = this->convertToRecordValueType((*value)[0]);
           if (!this->versionNumberValid
               || versionNumber > this->versionNumber
               || (versionNumber == this->versionNumber
@@ -745,7 +786,8 @@ private:
     this->versionNumber = VersionNumber();
     this->updateTimeStamp(this->versionNumber);
     bool immediate = pvSupport->write(
-      std::vector<T>(1, static_cast<T>(this->value)),
+      std::vector<T>(
+          1, this->template convertFromRecordValueType<T>(this->value)),
       this->versionNumber,
       [this](bool immediate) {
         if (!immediate) {

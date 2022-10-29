@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -46,6 +46,8 @@ DeviceAccessPVProvider::DeviceAccessPVProvider(
   this->insertCreatePVSupportFunc<float>();
   this->insertCreatePVSupportFunc<double>();
   this->insertCreatePVSupportFunc<std::string>();
+  this->insertCreatePVSupportFunc<ChimeraTK::Boolean>();
+  this->insertCreatePVSupportFunc<ChimeraTK::Void>();
   this->device.open(deviceAliasName);
   this->synchronous = numberOfIoThreads == 0;
 }

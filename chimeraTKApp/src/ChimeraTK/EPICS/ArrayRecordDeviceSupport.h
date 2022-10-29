@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2019 aquenos GmbH
+ * Copyright 2015-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -128,6 +128,72 @@ struct ArrayRecordBufferHelper<RecordType, std::string> {
 
 };
 
+template<typename RecordType>
+struct ArrayRecordBufferHelper<RecordType, ChimeraTK::Boolean> {
+
+  inline static void initializeBuffer(RecordType *record) {
+    record->bptr = new char[MAX_STRING_SIZE * record->nelm];
+    std::memset(record->bptr, 0, MAX_STRING_SIZE * record->nelm);
+  }
+
+  inline static std::vector<ChimeraTK::Boolean> readValue(RecordType *record) {
+    switch (record->ftvl) {
+    case DBF_CHAR:
+      return readValueInternal<std::int8_t>(record);
+    case DBF_SHORT:
+      return readValueInternal<std::int16_t>(record);
+    case DBF_LONG:
+      return readValueInternal<std::int32_t>(record);
+    default:
+      throw std::logic_error(
+          "Only integer types are supported for conversion to bool.");
+    }
+  }
+
+  inline static void writeValue(
+      RecordType *record, std::vector<ChimeraTK::Boolean> const &value) {
+    switch (record->ftvl) {
+    case DBF_CHAR:
+      writeValueInternal<std::int8_t>(record, value);
+      break;
+    case DBF_SHORT:
+      writeValueInternal<std::int16_t>(record, value);
+      break;
+    case DBF_LONG:
+      writeValueInternal<std::int32_t>(record, value);
+      break;
+    default:
+      throw std::logic_error(
+          "Only integer types are supported for conversion from bool.");
+    }
+  }
+
+private:
+
+  template<typename RecordValueType>
+  static std::vector<ChimeraTK::Boolean> readValueInternal(
+      RecordType *record) {
+    std::vector<ChimeraTK::Boolean> value(record->nelm);
+    RecordValueType *recordValueArray =
+        static_cast<RecordValueType *>(record->bptr);
+    for (std::size_t i = 0; i < record->nelm; ++i) {
+      value[i] = recordValueArray[i];
+    }
+    return value;
+  }
+
+  template<typename RecordValueType>
+  static void writeValueInternal(
+      RecordType *record, std::vector<ChimeraTK::Boolean> const &value) {
+    RecordValueType *recordValueArray =
+        static_cast<RecordValueType *>(record->bptr);
+    for (std::size_t i = 0; i < record->nelm; ++i) {
+      recordValueArray[i] = value[i];
+    }
+  }
+
+};
+
 /**
  * Base class for ArrayRecordDeviceSupport. This class implements the code
  * that is shared by the device supports for input and output records.
@@ -173,6 +239,22 @@ public:
     } else if (this->valueType == typeid(std::uint64_t)) {
       throw std::invalid_argument(
         "The value type uint64 is not support by this record.");
+    } else if (this->valueType == typeid(ChimeraTK::Boolean)) {
+      // We only support conversion between integer types and booleans.
+      switch (this->record->ftvl) {
+        case DBF_CHAR:
+        case DBF_SHORT:
+        case DBF_LONG:
+          break;
+        default:
+          throw std::invalid_argument(
+            std::string("Invalid FTVL for PV value type '")
+            + this->valueType.name()
+            + "'. Only integer types can be matched to bools.");
+      }
+    } else if (this->valueType == typeid(ChimeraTK::Void)) {
+      throw std::invalid_argument(
+        "The value type void is not support by this record.");
     } else {
       throw std::logic_error(
         std::string("Unexpected value type: ") + valueType.name());
@@ -268,7 +350,7 @@ public:
    * Processes a request to enable or disable the I/O Intr mode.
    */
   void getInterruptInfo(int command, ::IOSCANPVT *iopvt) {
-    this->template callForValueType<CallGetInterruptInfoInternal>(
+    this->template callForValueTypeNoVoid<CallGetInterruptInfoInternal>(
       this, command, iopvt);
   }
 
@@ -279,7 +361,7 @@ public:
    * callback.
    */
   void process() {
-    this->template callForValueType<CallProcessInternal>(this);
+    this->template callForValueTypeNoVoid<CallProcessInternal>(this);
   }
 
 private:
@@ -517,14 +599,14 @@ public:
    */
   ArrayRecordDeviceSupport(RecordType *record)
       : detail::ArrayRecordDeviceSupportTrait<RecordType>(record, record->out) {
-    this->template callForValueType<CallInitializeValue>(this);
+    this->template callForValueTypeNoVoid<CallInitializeValue>(this);
   }
 
   /**
    * Starts or completes a write operation (depending on the current state).
    */
   void process() {
-    this->template callForValueType<CallProcessInternal>(this);
+    this->template callForValueTypeNoVoid<CallProcessInternal>(this);
   }
 
 private:
