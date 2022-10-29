@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2020 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -48,9 +48,12 @@ ControlSystemAdapterSharedPVSupport<T>::ControlSystemAdapterSharedPVSupport(
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
     this->processArray = this->pvProvider->pvManager
       ->template getProcessArray<T>(name);
+    // We copy the value here instead of swapping it. Our IOC init hook that
+    // starts the application calls write() for each process array, so if we
+    // swapped the value here, the uninitialize (or zero-initialized) value
+    // would be sent to the device side.
     auto initialValue = std::make_shared<std::vector<T>>(
-        this->processArray->getNumberOfSamples());
-    std::swap(*initialValue, this->processArray->accessChannel(0));
+        this->processArray->accessChannel(0));
     this->lastValue = initialValue;
     this->lastVersionNumber = this->processArray->getVersionNumber();
   }
