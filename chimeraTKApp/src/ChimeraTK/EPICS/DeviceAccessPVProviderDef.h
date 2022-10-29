@@ -76,7 +76,7 @@ protected:
   // Declared in PVProvider.
   virtual std::shared_ptr<PVSupportBase> createPVSupport(
       std::string const &processVariableName,
-      std::type_info const& elementType) override;
+      std::type_info const &elementType) override;
 
 private:
 
@@ -111,9 +111,9 @@ private:
   bool synchronous;
 
   // Delete copy constructors and assignment operators.
-  DeviceAccessPVProvider(DeviceAccessPVProvider const&) = delete;
+  DeviceAccessPVProvider(DeviceAccessPVProvider const &) = delete;
   DeviceAccessPVProvider(DeviceAccessPVProvider &&) = delete;
-  DeviceAccessPVProvider &operator=(DeviceAccessPVProvider const&) = delete;
+  DeviceAccessPVProvider &operator=(DeviceAccessPVProvider const &) = delete;
   DeviceAccessPVProvider &operator=(DeviceAccessPVProvider &&) = delete;
 
   /**

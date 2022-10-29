@@ -247,7 +247,7 @@ public:
           this->notifyVersionNumber = versionNumber;
           ensureScanIoRequest(this->ioIntrModeScanPvt);
         },
-        [this](std::exception_ptr const& error){
+        [this](std::exception_ptr const &error){
           this->notifyException = error;
           ensureScanIoRequest(this->ioIntrModeScanPvt);
         });
@@ -339,7 +339,7 @@ public:
             &this->processCallback, priorityMedium, this->record);
         }
       },
-      [this](bool immediate, std::exception_ptr const& error){
+      [this](bool immediate, std::exception_ptr const &error){
         this->readException = error;
         if (!immediate) {
           ::callbackRequestProcessCallback(
@@ -489,7 +489,7 @@ public:
           // that the notification has finished.
           pvSupport->notifyFinished();
         },
-        [pvSupport](std::exception_ptr const& error) {
+        [pvSupport](std::exception_ptr const &error) {
           // It we receive an error notification for an output record, we cannot
           // tell whether this error precedes the last write operation (unlike a
           // value, an error is not associated with a version number), so we
@@ -558,7 +558,7 @@ public:
             &this->processCallback, priorityMedium, this->record);
         }
       },
-      [this](bool immediate, std::exception_ptr const& error){
+      [this](bool immediate, std::exception_ptr const &error){
         this->writeException = error;
         if (!immediate) {
           ::callbackRequestProcessCallback(

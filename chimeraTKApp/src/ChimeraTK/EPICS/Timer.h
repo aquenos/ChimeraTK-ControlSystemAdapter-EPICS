@@ -176,9 +176,9 @@ private:
   std::shared_ptr<Impl> impl;
 
   // Delete copy constructors and assignment operators.
-  Timer(Timer const&) = delete;
+  Timer(Timer const &) = delete;
   Timer(Timer &&) = delete;
-  Timer &operator=(Timer const&) = delete;
+  Timer &operator=(Timer const &) = delete;
   Timer &operator=(Timer &&) = delete;
 
 };

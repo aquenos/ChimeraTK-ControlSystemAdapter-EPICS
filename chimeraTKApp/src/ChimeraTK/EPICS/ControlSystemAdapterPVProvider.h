@@ -81,7 +81,7 @@ protected:
   // Declared in PVProvider.
   virtual PVSupportBase::SharedPtr createPVSupport(
       std::string const &processVariableName,
-      std::type_info const& elementType) override;
+      std::type_info const &elementType) override;
 
 private:
 
@@ -180,9 +180,9 @@ private:
   ProcessArray<int>::SharedPtr wakeUpPV;
 
   // Delete copy constructors and assignment operators.
-  ControlSystemAdapterPVProvider(ControlSystemAdapterPVProvider const&) = delete;
+  ControlSystemAdapterPVProvider(ControlSystemAdapterPVProvider const &) = delete;
   ControlSystemAdapterPVProvider(ControlSystemAdapterPVProvider &&) = delete;
-  ControlSystemAdapterPVProvider &operator=(ControlSystemAdapterPVProvider const&) = delete;
+  ControlSystemAdapterPVProvider &operator=(ControlSystemAdapterPVProvider const &) = delete;
   ControlSystemAdapterPVProvider &operator=(ControlSystemAdapterPVProvider &&) = delete;
 
   /**

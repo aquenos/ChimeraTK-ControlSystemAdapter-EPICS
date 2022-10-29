@@ -89,7 +89,7 @@ protected:
    */
   virtual PVSupportBase::SharedPtr createPVSupport(
       std::string const &processVariableName,
-      std::type_info const& elementType) = 0;
+      std::type_info const &elementType) = 0;
 
   /**
    * Destructor. The destructor is protected so that instances cannot be

@@ -97,7 +97,7 @@ ControlSystemAdapterPVProvider::~ControlSystemAdapterPVProvider() {
 
 PVSupportBase::SharedPtr ControlSystemAdapterPVProvider::createPVSupport(
     std::string const &processVariableName,
-    std::type_info const& elementType) {
+    std::type_info const &elementType) {
   try {
     auto createFunc = this->createPVSupportFuncs.at(
         std::type_index(elementType));
@@ -198,28 +198,29 @@ void ControlSystemAdapterPVProvider::runInNotificationThread(
 void ControlSystemAdapterPVProvider::runNotificationThread() {
   try {
     // We create a read-any group that will allow us to wait for any of the PVs
-    // (supporting notifications) to receive an update notification. This list of
-    // PVs includes our special wake-up PV that we use to wake up this thread
+    // (supporting notifications) to receive an update notification. This list
+    // of PVs includes our special wake-up PV that we use to wake up this thread
     // while it is waiting for a notification.
-    ReadAnyGroup notificationGroup(this->pvsForNotification.begin(), this->pvsForNotification.end());
+    ReadAnyGroup notificationGroup(
+        this->pvsForNotification.begin(), this->pvsForNotification.end());
     // We cannot check the abort condition here because we have to hold a lock on
     // the mutex while checking the condition.
-    while(true) {
+    while (true) {
       ReadAnyGroup::Notification notification;
       // We have to call waitAny before acquiring the mutex. Otherwise, we would
       // block the mutex while waiting and the thread could never be woken up,
-      // because the code sending the wake-up request has to acquire the mutex as
-      // well.
+      // because the code sending the wake-up request has to acquire the mutex
+      // as well.
       notification = notificationGroup.waitAny();
-      // We limit the code where we hold the mutex to the part where it is really
-      // needed. In particular, we do not want to hold the lock when calling
-      // notification callbacks as this could result in a deadlock in the worst
-      // case.
+      // We limit the code where we hold the mutex to the part where it is
+      // really needed. In particular, we do not want to hold the lock when
+      // calling notification callbacks as this could result in a deadlock in
+      // the worst case.
       std::function<void()> notifyFunction;
       {
         std::unique_lock<std::recursive_mutex> lock(this->mutex);
         // If there are any notification tasks, we execute them now.
-        while(!this->tasks.empty()) {
+        while (!this->tasks.empty()) {
           auto task = std::move(this->tasks.front());
           this->tasks.pop();
           // We do not want to hold the lock on the mutex while executing the
@@ -229,48 +230,48 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
           lock.lock();
         }
         // If a shutdown has been requested, we quit immediately.
-        if(this->notificationThreadShutdownRequested) {
+        if (this->notificationThreadShutdownRequested) {
           return;
         }
-        auto sharedPVSupport = this->sharedPVSupportsByIndex[notification.getIndex()].lock();
-        if(sharedPVSupport) {
-          // We cannot process the notification if an earlier notification for the
-          // same PV is still being processed. In this case we sleep until this
-          // thread is woken up and then check again. When a PV support is
-          // finished with the notification process, it will wake up this thread,
-          // so we should eventually wake up and find that we can process the
-          // notification.
-          while(!sharedPVSupport->readyForNextNotification()) {
+        auto sharedPVSupport =
+            this->sharedPVSupportsByIndex[notification.getIndex()].lock();
+        if (sharedPVSupport) {
+          // We cannot process the notification if an earlier notification for
+          // the same PV is still being processed. In this case we sleep until
+          // this thread is woken up and then check again. When a PV support is
+          // finished with the notification process, it will wake up this
+          // thread, so we should eventually wake up and find that we can
+          // process the notification.
+          while (!sharedPVSupport->readyForNextNotification()) {
             this->notificationThreadCv.wait(lock);
             // If there are any notification tasks, we execute them now. We have
             // to do this here because we might sleep again if the PV support is
             // still not ready for the next notification.
-            while(!this->tasks.empty()) {
+            while (!this->tasks.empty()) {
               auto task = std::move(this->tasks.front());
               this->tasks.pop();
-              // We do not want to hold the lock on the mutex while executing the
-              // task.
+              // We do not want to hold the lock on the mutex while executing
+              // the task.
               lock.unlock();
               task();
               lock.lock();
             }
             // If a shutdown has been requested, we quit immediately.
-            if(this->notificationThreadShutdownRequested) {
+            if (this->notificationThreadShutdownRequested) {
               return;
             }
           }
           // We know that at that point, the task queue is empty. Tasks are only
-          // added while holding a lock on the mutex and we checked that the queue
-          // is empty after acquiring the mutex.
+          // added while holding a lock on the mutex and we checked that the
+          // queue is empty after acquiring the mutex.
           // This is important because we use the task queue to notify callbacks
           // with the current value and the same callback will only be called
-          // when there actually is a new value (that we might accept right in the
-          // next line).
-          if(notification.accept()) {
+          // when there actually is a new value (that we might accept right in
+          // the next line).
+          if (notification.accept()) {
             notifyFunction = sharedPVSupport->doNotify();
           }
-        }
-        else {
+        } else {
           // If the notification is for a PV for which there is no PV support
           // (yet), we can simply accept it. Note that this would also happen
           // through the destructor of the notification object, but doing it
@@ -281,12 +282,11 @@ void ControlSystemAdapterPVProvider::runNotificationThread() {
       // After releasing the lock, we call the notify function. It is important
       // that we do not do this while holding the lock because we would risk a
       // deadlock.
-      if(notifyFunction) {
+      if (notifyFunction) {
         notifyFunction();
       }
     }
-  }
-  catch(boost::thread_interrupted&) {
+  } catch (boost::thread_interrupted &) {
     return;
   }
 }

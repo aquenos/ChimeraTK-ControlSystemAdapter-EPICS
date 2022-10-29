@@ -89,7 +89,7 @@ bool DeviceAccessPVProvider::isSynchronous() {
 
 std::shared_ptr<PVSupportBase> DeviceAccessPVProvider::createPVSupport(
     std::string const &processVariableName,
-    std::type_info const& elementType) {
+    std::type_info const &elementType) {
   try {
     auto createFunc = this->createPVSupportFuncs.at(
         std::type_index(elementType));

@@ -259,15 +259,15 @@ private:
   friend class ControlSystemAdapterPVSupport<T>;
 
   /**
-   * Version number / time stamp belonging to the value stored in lastValue.
-   */
-  VersionNumber lastVersionNumber;
-
-  /**
    * Last value that his been read or written. This value might have been read by the
    * doNotify() or the read(...) method or written by the write(...) method.
    */
   std::shared_ptr<Value const> lastValue;
+
+  /**
+   * Version number / time stamp belonging to the value stored in lastValue.
+   */
+  VersionNumber lastVersionNumber;
 
   /**
    * Mutex for which a lock is acquired when modifying shared state. This is the

@@ -208,13 +208,14 @@ protected:
    */
   void updateTimeStamp(VersionNumber const &versionNumber) {
     auto time = versionNumber.getTime();
-    std::chrono::nanoseconds::rep timeInNanosecs = std::chrono::time_point_cast<std::chrono::nanoseconds>(time).
-                                                   time_since_epoch().count();
-    std::chrono::seconds::rep secs = timeInNanosecs / 1000000000;
+    std::chrono::nanoseconds::rep timeInNanoseconds =
+        std::chrono::time_point_cast<std::chrono::nanoseconds>(time)
+        .time_since_epoch().count();
+    std::chrono::seconds::rep seconds = timeInNanoseconds / 1000000000;
     record->time.secPastEpoch =
-        (secs < POSIX_TIME_AT_EPICS_EPOCH) ?
-            0 : (secs - POSIX_TIME_AT_EPICS_EPOCH);
-    record->time.nsec = timeInNanosecs % 1000000000;
+        (seconds < POSIX_TIME_AT_EPICS_EPOCH) ?
+            0 : (seconds - POSIX_TIME_AT_EPICS_EPOCH);
+    record->time.nsec = timeInNanoseconds % 1000000000;
   }
 
 private:
@@ -324,11 +325,6 @@ private:
   std::exception_ptr notifyException;
 
   /**
-   * Version number / time stamp that belongs to notifyValue.
-   */
-  VersionNumber notifyVersionNumber;
-
-  /**
    * Value that was sent with last notification. This is actually a pointer to a
    * const vector, but we only know the element type at runtime, so we have to
    * use a pointer to void here.
@@ -336,14 +332,14 @@ private:
   std::shared_ptr<void const> notifyValue;
 
   /**
+   * Version number / time stamp that belongs to notifyValue.
+   */
+  VersionNumber notifyVersionNumber;
+
+  /**
    * Exception that happened during last read attempt.
    */
   std::exception_ptr readException;
-
-  /**
-   * Version number / Time stamp that belongs to readValue.
-   */
-  VersionNumber readVersionNumber;
 
   /**
    * Value that was read by last read attempt. This is actually a pointer to a
@@ -351,6 +347,11 @@ private:
    * use a pointer to void here.
    */
   std::shared_ptr<void const> readValue;
+
+  /**
+   * Version number / Time stamp that belongs to readValue.
+   */
+  VersionNumber readVersionNumber;
 
   /**
    * Internal implementation of getInterruptInfo(...). This is a template that
@@ -377,7 +378,7 @@ private:
           this->notifyVersionNumber = versionNumber;
           ensureScanIoRequest(this->ioIntrModeScanPvt);
         },
-        [this](std::exception_ptr const& error){
+        [this](std::exception_ptr const &error){
           this->notifyException = error;
           ensureScanIoRequest(this->ioIntrModeScanPvt);
         });
@@ -489,7 +490,7 @@ private:
             &this->processCallback, priorityMedium, this->record);
         }
       },
-      [this](bool immediate, std::exception_ptr const& error){
+      [this](bool immediate, std::exception_ptr const &error){
         this->readException = error;
         if (!immediate) {
           ::callbackRequestProcessCallback(
@@ -689,7 +690,7 @@ private:
           // that the notification has finished.
           pvSupport->notifyFinished();
         },
-        [pvSupport](std::exception_ptr const& error) {
+        [pvSupport](std::exception_ptr const &error) {
           // It we receive an error notification for an output record, we cannot
           // tell whether this error precedes the last write operation (unlike a
           // value, an error is not associated with a version number), so we
@@ -767,7 +768,7 @@ private:
             &this->processCallback, priorityMedium, this->record);
         }
       },
-      [this](bool immediate, std::exception_ptr const& error){
+      [this](bool immediate, std::exception_ptr const &error){
         this->writeException = error;
         if (!immediate) {
           ::callbackRequestProcessCallback(

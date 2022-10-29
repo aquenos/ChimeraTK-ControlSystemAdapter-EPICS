@@ -141,7 +141,7 @@ private:
     }
   }
 
-  void expect(std::string const& str) {
+  void expect(std::string const &str) {
     if (!accept(str)) {
       if (isEndOfString()) {
         throwException(std::string("Expected \"") + str

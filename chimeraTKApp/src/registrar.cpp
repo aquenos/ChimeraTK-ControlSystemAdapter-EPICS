@@ -44,7 +44,7 @@ extern "C" {
   static const iocshFuncDef iocshChimeraTKConfigureApplicationFuncDef = {
       "chimeraTKConfigureApplication", 1, iocshChimeraTKConfigureApplicationArgs};
 
-  // runAppInitHook needs access to the pvManager
+  // runAppInitHook needs access to the pvManager.
   boost::weak_ptr<ControlSystemPVManager> pvManager;
 
   // Init hook that takes care of actually starting the application. This hook
@@ -52,25 +52,26 @@ extern "C" {
   static void runAppInitHook(::initHookState state) noexcept {
     if (state == initHookAtIocRun) {
       try {
-        // check for variables not yet initialised - we must guarantee that all to-application variables are written
-        // exactly once at server start.
+        // Check for variables not yet initialised - we must guarantee that all
+        // to-application variables are written exactly once at server start.
         auto pvm = pvManager.lock();
-        for(auto& pv : pvm->getAllProcessVariables()) {
-          if(!pv->isWriteable()) continue;
-          if(pv->getVersionNumber() == ChimeraTK::VersionNumber(nullptr)) {
-            // The variable has not yet been written. Do it now, even if we just send a 0.
+        for(auto &pv : pvm->getAllProcessVariables()) {
+          if (!pv->isWriteable()) {
+            continue;
+          }
+          if (pv->getVersionNumber() == ChimeraTK::VersionNumber(nullptr)) {
+            // The variable has not yet been written. Do it now, even if we just
+            // send a 0.
             pv->write();
           }
         }
 
-        ApplicationBase& application = ApplicationBase::getInstance();
+        ApplicationBase &application = ApplicationBase::getInstance();
         application.run();
-      }
-      catch(std::exception& e) {
+      } catch (std::exception &e) {
         errorPrintf("Could not start the application: %s", e.what());
         return;
-      }
-      catch(...) {
+      } catch (...) {
         errorPrintf("Could not start the application: Unknown error.");
       }
     }

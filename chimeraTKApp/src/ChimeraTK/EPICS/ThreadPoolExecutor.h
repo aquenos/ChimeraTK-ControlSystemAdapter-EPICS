@@ -101,9 +101,9 @@ private:
   std::vector<std::thread> threads;
 
   // Delete copy constructors and assignment operators.
-  ThreadPoolExecutor(ThreadPoolExecutor const&) = delete;
+  ThreadPoolExecutor(ThreadPoolExecutor const &) = delete;
   ThreadPoolExecutor(ThreadPoolExecutor &&) = delete;
-  ThreadPoolExecutor &operator=(ThreadPoolExecutor const&) = delete;
+  ThreadPoolExecutor &operator=(ThreadPoolExecutor const &) = delete;
   ThreadPoolExecutor &operator=(ThreadPoolExecutor &&) = delete;
 
   /**
