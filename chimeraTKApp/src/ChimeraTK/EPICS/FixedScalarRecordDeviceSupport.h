@@ -133,20 +133,25 @@ protected:
   /**
    * Converts from the type of the record’s value field to the type of the
    * underlying process variable.
+   *
+   * This version is used for all types that are not Void.
    */
   template<typename T>
-  T convertFromRecordValueType(RecordValueType value) {
+  typename std::enable_if<!std::is_same<T, ChimeraTK::Void>::value, T>::type convertFromRecordValueType(RecordValueType value) {
     return static_cast<T>(value);
   }
 
   /**
-   * Template specialization of convertFromRecordValueType for the Void type.
+   * Converts from the type of the record’s value field to the type of the
+   * underlying process variable.
+   *
+   * This version is only used for the Void type.
    *
    * A Void does not have an associated value, so converting to Void is done by
    * simply constructing a new instance.
    */
-  template<>
-  ChimeraTK::Void convertFromRecordValueType<ChimeraTK::Void>(
+  template<typename T>
+  typename std::enable_if<std::is_same<T, ChimeraTK::Void>::value, T>::type convertFromRecordValueType(
       RecordValueType value) {
     return ChimeraTK::Void();
   }
