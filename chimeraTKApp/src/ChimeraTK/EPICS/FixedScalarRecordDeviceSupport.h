@@ -739,8 +739,8 @@ private:
 }
 
   /**
-   * Internal implementation of getInterruptInfo(...). This is a template that
-   * is instantiated for each supported element type. The calling method ensures
+   * Internal implementation of process(...). This is a template that is
+   * instantiated for each supported element type. The calling method ensures
    * that the version for the current element type is called.
    */
   template<typename T>
