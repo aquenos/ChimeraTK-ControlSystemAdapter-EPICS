@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2019 aquenos GmbH
+ * Copyright 2015-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -22,6 +22,10 @@
 
 #include <type_traits>
 
+namespace ChimeraTK {
+namespace EPICS {
+namespace detail {
+
 /**
  * Helper template struct for the ToVoid template using declaration.
  */
@@ -38,11 +42,6 @@ struct ToVoidHelper {
  */
 template<typename T>
 using ToVoid = typename ToVoidHelper<T>::type;
-
-namespace ChimeraTK {
-namespace EPICS {
-
-namespace detail {
 
 } // namespace detail
 } // namespace EPICS
