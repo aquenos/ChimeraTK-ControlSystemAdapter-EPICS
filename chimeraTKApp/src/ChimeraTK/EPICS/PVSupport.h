@@ -2,7 +2,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -259,6 +259,19 @@ public:
       ErrorCallback const &errorCallback) {
     throw std::logic_error(
       "This PV support does not allow reading. Check by calling canRead() before calling this method.");
+  }
+
+  /**
+   * Called to indicate that the process variable is going to be written during
+   * the startup phase.
+   *
+   * Records that are going to be processed during IOC startup should call this
+   * method early (at the time when initialValue() is called) in order to
+   * indicate that they will call write() soon. This information is used by some
+   * implementations in order to decide which initialization tasks they need to
+   * perform.
+   */
+  virtual void willWrite() {
   }
 
   /**

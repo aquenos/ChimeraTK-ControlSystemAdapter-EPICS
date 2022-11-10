@@ -43,7 +43,7 @@ ControlSystemAdapterSharedPVSupport<T>::ControlSystemAdapterSharedPVSupport(
     std::string const &name, std::size_t index)
     : ControlSystemAdapterSharedPVSupportBase(index),
       mutex(pvProvider->mutex), name(name), notificationPendingCount(0),
-      notifyCallbackCount(0), pvProvider(pvProvider) {
+      notifyCallbackCount(0), pvProvider(pvProvider), willWriteCalled(false) {
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
     this->processArray = this->pvProvider->pvManager
@@ -140,6 +140,12 @@ bool ControlSystemAdapterSharedPVSupport<T>::read(
     successCallback(true, value, versionNumber);
   }
   return true;
+}
+
+template<typename T>
+void ControlSystemAdapterSharedPVSupport<T>::willWrite() {
+  std::lock_guard<std::recursive_mutex> lock(this->mutex);
+  this->willWriteCalled = true;
 }
 
 template<typename T>
@@ -264,6 +270,25 @@ std::function<void()> ControlSystemAdapterSharedPVSupport<T>::doNotify() {
         }
       }
     };
+}
+
+template<typename T>
+void ControlSystemAdapterSharedPVSupport<T>::initialWriteIfNeeded() {
+  std::lock_guard<std::recursive_mutex> lock(this->mutex);
+  // If this process variable is not writable or write is going to be called by
+  // a record, we do not have to do anything here.
+  if (!this->canWrite() || this->willWriteCalled) {
+    return;
+  }
+  // If write is not going to be called, we call it here, so that it is called
+  // once during initialization as required by the specification at
+  // https://chimeratk.github.io/ApplicationCore/master/spec_initial_value_propagation.html.
+  // We do not use the version number supplied by initialValue(). Instead, we
+  // generate a new one. The initial version number might be the null version
+  // number, and we are not supposed to use that one in any transfer operation.
+  Value initialValue;
+  std::tie(initialValue, std::ignore) = this->initialValue();
+  write(std::move(initialValue), VersionNumber(), nullptr, nullptr);
 }
 
 template<typename T>

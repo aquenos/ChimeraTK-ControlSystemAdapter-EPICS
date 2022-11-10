@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2020 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -87,6 +87,15 @@ protected:
   inline std::size_t getIndex() const {
     return this->index;
   }
+
+  /**
+   * Calls the underlying ProcessArray’s write() method, but only if willWrite()
+   * has not been called.
+   *
+   * This ensures that every process variable is written once in the
+   * initialization phase, as required by the ApplicationCore specification.
+   */
+  virtual void initialWriteIfNeeded() = 0;
 
   /**
    * Tells whether doNotify() may be called. The PVProvider will only call
@@ -220,6 +229,15 @@ public:
       ErrorCallback const &errroCallback);
 
   /**
+   * Called to indicate that the process variable is going to be written during
+   * the startup phase.
+   *
+   * We use this in initialWriteIfNeeded() in order to decide whether we need to
+   * write the underlying process variable once.
+   */
+  void willWrite();
+
+  /**
    * Writes a value and calls the callback.
    *
    * The callback is always called before this method returns.
@@ -245,6 +263,9 @@ protected:
 
   // Declared in ControlSystemAdapterSharedPVSupportBase.
   virtual std::function<void()> doNotify() override;
+
+  // Declared in ControlSystemAdapterSharedPVSupportBase.
+  virtual void initialWriteIfNeeded() override;
 
   // Declared in ControlSystemAdapterSharedPVSupportBase.
   virtual bool readyForNextNotification() override;
@@ -320,6 +341,13 @@ private:
    * not in use any longer.
    */
   std::forward_list<std::weak_ptr<ControlSystemAdapterPVSupport<T>>> pvSupports;
+
+  /**
+   * Flag indicating whether at least one of the records that uses this PV
+   * support is going to call write() during the initialization phase of the
+   * IOC.
+   */
+  bool willWriteCalled;
 
   /**
    * Calls the specified notify callback with the current value of the PV. This

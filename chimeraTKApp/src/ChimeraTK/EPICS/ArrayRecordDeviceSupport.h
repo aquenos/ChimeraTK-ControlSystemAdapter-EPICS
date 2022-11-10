@@ -599,7 +599,8 @@ public:
    */
   ArrayRecordDeviceSupport(RecordType *record)
       : detail::ArrayRecordDeviceSupportTrait<RecordType>(record, record->out),
-      notifyPending(false), versionNumberValid(false), writePending(false) {
+      firstWritePending(false), notifyPending(false), versionNumberValid(false),
+      writePending(false) {
     this->template callForValueTypeNoVoid<CallInitializeValue>(this);
   }
 
@@ -633,6 +634,17 @@ private:
       obj->template processInternal<T>();
     }
   };
+
+  /**
+   * Flag indicating that the process variable has never been written
+   *
+   * This is relevant in the context of bi-directional PVs and ensures that when
+   * a notification is received before the first write operation, that
+   * notification is discarded. This is important in order to fulfill the
+   * contract that we will call PVSupport::write once during initialization
+   * after having called PVSupport::willWrite.
+   */
+  bool firstWritePending;
 
   /**
    * Mutex that is protecting access to notifyPending, value, versionNumber,
@@ -730,6 +742,21 @@ private:
       // It might not always be possible to get an initial value, so it is not
       // an error if this fails.
     }
+    // If this record’s PINI field is set to YES, RUN, or RUNNING, we tell the
+    // PV support that we are going to call write(). This will keep it from
+    // calling write with a default value, thus ensuring that the first value
+    // that is writen is the one that has been written to this record (e.g. by
+    // Autosave).
+    switch(this->record->pini) {
+    case menuPiniYES:
+    case menuPiniRUN:
+    case menuPiniRUNNING:
+      pvSupport->willWrite();
+      this->firstWritePending = true;
+      break;
+    default:
+      break;
+    }
     // If the PV supports notifications and the nobidirectional flag has not
     // been set, we register a notification callback so that we can update the
     // record's value when it changes on the device side.
@@ -793,6 +820,12 @@ private:
     // We have to hold a lock on the notify mutex in this function because we
     // access fields that are also accessed from the notify callback.
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
+    // If the first write has not happened yet, we ensure that it happens now
+    // (instead of processing a notification that might have been received).
+    if (this->firstWritePending) {
+      this->firstWritePending = false;
+      this->notifyPending = false;
+    }
     // We only support a fixed number of array elements, so regardless of what
     // else we do, we always reset the NORD field to match NELM.
     this->record->nord = this->record->nelm;

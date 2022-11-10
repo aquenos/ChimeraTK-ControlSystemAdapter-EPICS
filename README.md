@@ -288,6 +288,14 @@ automatically, even if they can be treated as numeric registers. In this case,
 one of the supported data types has to be specified explicitly as part of the
 register address specified in the record's `INP` or `OUT` field.
 
+### Using Autosave
+
+When using Autosave in order to persist the values of output records between
+restarts of the IOC, please remember to set the respective records’ `PINI`
+fields to `YES` (preferred), `RUN`, or `RUNNING`. Otherwise, the persited value
+will be restored to the record, but the value will not be sent to the associated
+application or device, so that it does not take effect.
+
 
 Examples
 --------

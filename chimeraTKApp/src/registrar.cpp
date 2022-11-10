@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -44,35 +44,21 @@ extern "C" {
   static const iocshFuncDef iocshChimeraTKConfigureApplicationFuncDef = {
       "chimeraTKConfigureApplication", 1, iocshChimeraTKConfigureApplicationArgs};
 
-  // runAppInitHook needs access to the pvManager.
-  boost::weak_ptr<ControlSystemPVManager> pvManager;
-
   // Init hook that takes care of actually starting the application. This hook
-  // is registered by the iocshChimeraTKConfigureApplicationFunc function.
-  static void runAppInitHook(::initHookState state) noexcept {
+  // is registered by the chimeraTKControlSystemAdapterRegistrar function.
+  static void finalizePVProvidersInitHook(::initHookState state) noexcept {
     if (state == initHookAtIocRun) {
       try {
-        // Check for variables not yet initialised - we must guarantee that all
-        // to-application variables are written exactly once at server start.
-        auto pvm = pvManager.lock();
-        for(auto &pv : pvm->getAllProcessVariables()) {
-          if (!pv->isWriteable()) {
-            continue;
-          }
-          if (pv->getVersionNumber() == ChimeraTK::VersionNumber(nullptr)) {
-            // The variable has not yet been written. Do it now, even if we just
-            // send a 0.
-            pv->write();
-          }
-        }
-
-        ApplicationBase &application = ApplicationBase::getInstance();
-        application.run();
+        PVProviderRegistry::finalizeInitialization();
       } catch (std::exception &e) {
-        errorPrintf("Could not start the application: %s", e.what());
+        errorPrintf(
+            "Could not finalize the initialization of the PV providers: %s",
+            e.what());
         return;
       } catch (...) {
-        errorPrintf("Could not start the application: Unknown error.");
+        errorPrintf(
+            "Could not finalize the initialization of the PV providers: "
+            "Unknown error.");
       }
     }
   }
@@ -130,10 +116,8 @@ extern "C" {
       errorPrintf("Could not register the application: Unknown error.");
       return;
     }
-    // We delay starting the application thread until the IOC is
-    // started.
-    pvManager = pvManagers.first;
-    ::initHookRegister(runAppInitHook);
+    // We do not start the application here. This is later done by the
+    // finalizePVProvidersInitHook function.
   }
 
   // Data structures needed for the iocsh chimeraTKOpenAsyncDevice function.
@@ -301,6 +285,7 @@ extern "C" {
         iocshChimeraTKOpenSyncDeviceFunc);
     ::iocshRegister(&iocshChimeraTKSetDMapFilePathFuncDef,
         iocshChimeraTKSetDMapFilePathFunc);
+    ::initHookRegister(finalizePVProvidersInitHook);
   }
 
   epicsExportRegistrar(chimeraTKControlSystemAdapterRegistrar);

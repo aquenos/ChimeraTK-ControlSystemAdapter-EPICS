@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -56,10 +56,26 @@ public:
    *
    * If there is no process variable with the specified name, this method throws
    * an exception.
+   *
+   * If this method is called after finalizeInitialization(), it may throw an
+   * exception.
    */
   template<typename ElementType>
   typename PVSupport<ElementType>::SharedPtr createPVSupport(
       std::string const &processVariableName);
+
+  /**
+   * Finalizes the initialization of this PV provider.
+   *
+   * This is called after all the needed PV supports have been created.
+   * Implementations may override this to carry out any initialization logic
+   * that needs to be run after PV supports have been created but before general
+   * operation of the EPICS IOC commences.
+   *
+   * This method may throw an exception if it is called more than once.
+   */
+  virtual void finalizeInitialization() {
+  }
 
   /**
    * Returns the default type for the specified process variable. The default

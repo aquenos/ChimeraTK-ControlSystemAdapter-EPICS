@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -40,6 +40,18 @@ class PVProviderRegistry {
 public:
 
   /**
+   * Finalizes the initialization of the PV providers.
+   *
+   * This calls the method of the same name on all PV providers that are
+   * registered with this registry.
+   *
+   * This method must only be called once. Calling it more than once results in
+   * in an std::logic_error being thrown.
+   */
+  static void finalizeInitialization();
+
+
+  /**
    * Returns the PV provider for a specific application or device. This method
    * is only intended for use by the device support classes for the various
    * record types.
@@ -51,13 +63,16 @@ public:
    * to be called for each application that shall be used with this device
    * support. The application name is an arbitrary name (that may not contain
    * whitespace) that is used to identify the application.
-
+   *
    * The PV manager must be a reference to the control-system PV manager for the
    * application.
    *
    * The application name must be unique and must be different from any other
    * application name or device name that has been registered with this
    * registry.
+   *
+   * Calling this method after finalizeInitialization() causes an
+   * std::logic_error to be thrown.
    */
   static void registerApplication(
       std::string const &appName,
@@ -69,7 +84,7 @@ public:
    *
    * The first parameter is the device name, which is an arbitrary name (that
    * may not contain whitespace) that is used to identify the device.
-
+   *
    * The second parameter is the alias of the device used by ChimeraTK Device
    * Access. Typically, this alias is defined in a .dmap file.
    *
@@ -83,6 +98,9 @@ public:
    * The device name must be unique and must be different from any other
    * application name or device name that has been registered with this
    * registry.
+   *
+   * Calling this method after finalizeInitialization() causes an
+   * std::logic_error to be thrown.
    */
   static void registerDevice(
       std::string const &devName,
@@ -91,6 +109,7 @@ public:
 
 private:
 
+  static bool finalizeInitializationCalled;
   static std::recursive_mutex mutex;
   static std::unordered_map<std::string, PVProvider::SharedPtr> pvProviders;
 

@@ -18,6 +18,7 @@
  */
 
 #include <cstdint>
+#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -25,6 +26,7 @@
 #include <ChimeraTK/RegisterPath.h>
 
 #include "ChimeraTK/EPICS/ControlSystemAdapterSharedPVSupportImpl.h"
+#include "ChimeraTK/EPICS/errorPrint.h"
 
 #include "ChimeraTK/EPICS/ControlSystemAdapterPVProvider.h"
 
@@ -79,6 +81,66 @@ ControlSystemAdapterPVProvider::ControlSystemAdapterPVProvider(
   this->sharedPVSupportsByIndex.resize(this->pvsForNotification.size());
   this->notificationThread =
       std::thread([this]{this->runNotificationThread();});
+}
+
+void ControlSystemAdapterPVProvider::finalizeInitialization() {
+  // We wrap this in a try block because if the initialization fails, we do not
+  // want to block the initialization of other PV providers, so we rather print
+  // an error message than throwing an exception.
+  try {
+    std::lock_guard<std::recursive_mutex> lock(this->mutex);
+    // Check for variables not yet initialised - we must guarantee that all
+    // to-application variables are written exactly once at server start. We
+    // also want to notify the application about variables that are not used, so
+    // that it can avoid spending CPU cycles on updating them.
+    std::set<std::string> unmappedVariables;
+    for(auto &pv : this->pvManager->getAllProcessVariables()) {
+      // Find the shared PV support for the process variable.
+      auto const entry = this->sharedPVSupports.find(pv->getName());
+      // If there is no shared PV support, it means that the process variable is
+      // not used.
+      if (entry == this->sharedPVSupports.end()) {
+        // We still write the PV once. For ApplicationCore, this should not be
+        // necessary when we pass this variable to optimiseUnmappedVariables,
+        // but the specification is a bit fuzzy, so we do not want  this to
+        // break if someone changes it in the future.
+        if (pv->isWriteable()) {
+          pv->write();
+        }
+        unmappedVariables.insert(pv->getName());
+        continue;
+      }
+      auto const sharedPVSupport = entry->second.lock();
+      // It is very unlikely that the PV support is not used any longer and has
+      // thus been released, but if it is, we treat it like it had never been
+      // created.
+      if (!sharedPVSupport) {
+        // We still write the PV once. For ApplicationCore, this should not be
+        // necessary when we pass this variable to optimiseUnmappedVariables,
+        // but the specification is a bit fuzzy, so we do not want  this to
+        // break if someone changes it in the future.
+        if (pv->isWriteable()) {
+          pv->write();
+        }
+        unmappedVariables.insert(pv->getName());
+        continue;
+      }
+      // Writable process variables have to be written at least once during
+      // application startup, so we ensure this now.
+      sharedPVSupport->initialWriteIfNeeded();
+    }
+    ApplicationBase &application = ApplicationBase::getInstance();
+    // We tell the application about process variables that are not used. This
+    // might allow the application to save CPU cycles.
+    application.optimiseUnmappedVariables(unmappedVariables);
+    // Start the application.
+    application.run();
+  } catch (std::exception &e) {
+    errorPrintf("Could not start the application: %s", e.what());
+    return;
+  } catch (...) {
+    errorPrintf("Could not start the application: Unknown error.");
+  }
 }
 
 std::type_info const &ControlSystemAdapterPVProvider::getDefaultType(

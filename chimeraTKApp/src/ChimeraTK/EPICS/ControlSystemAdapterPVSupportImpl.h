@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2018-2019 aquenos GmbH
+ * Copyright 2018-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -148,6 +148,11 @@ bool ControlSystemAdapterPVSupport<T>::read(
     ReadCallback const &successCallback,
     ErrorCallback const &errorCallback) {
   return this->shared->read(successCallback, errorCallback);
+}
+
+template<typename T>
+void ControlSystemAdapterPVSupport<T>::willWrite() {
+  this->shared->willWrite();
 }
 
 template<typename T>
