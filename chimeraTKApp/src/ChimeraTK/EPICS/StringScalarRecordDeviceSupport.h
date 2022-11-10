@@ -1,7 +1,7 @@
 /*
  * ChimeraTK control-system adapter for EPICS.
  *
- * Copyright 2015-2019 aquenos GmbH
+ * Copyright 2015-2022 aquenos GmbH
  *
  * The ChimeraTK Control System Adapter for EPICS is free software: you can
  * redistribute it and/or modify it under the terms of the GNU Lesser General
@@ -418,7 +418,8 @@ public:
    */
   StringScalarRecordDeviceSupport(RecordType *record)
       : detail::StringScalarRecordDeviceSupportTrait<RecordType, HasSizvField>(
-          record, record->out) {
+          record, record->out),
+      notifyPending(false), versionNumberValid(false), writePending(false) {
     // We mark the version number as invalid, so that the first notification is
     // always accepted when the the initialization fails.
     this->versionNumberValid = false;

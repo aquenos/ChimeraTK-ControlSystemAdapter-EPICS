@@ -598,7 +598,8 @@ public:
    * Constructor. Takes a pointer to the record's data-structure.
    */
   ArrayRecordDeviceSupport(RecordType *record)
-      : detail::ArrayRecordDeviceSupportTrait<RecordType>(record, record->out) {
+      : detail::ArrayRecordDeviceSupportTrait<RecordType>(record, record->out),
+      notifyPending(false), versionNumberValid(false), writePending(false) {
     this->template callForValueTypeNoVoid<CallInitializeValue>(this);
   }
 

@@ -524,7 +524,8 @@ public:
    */
   FixedScalarRecordDeviceSupport(RecordType *record)
       : detail::FixedScalarRecordDeviceSupportTrait<RecordType, ValueFieldName>(
-          record, record->out) {
+          record, record->out),
+      notifyPending(false), versionNumberValid(false), writePending(false) {
     this->template callForValueType<CallInitializeValue>(this);
   }
 
