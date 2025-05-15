@@ -46,12 +46,6 @@ Installation
 Please copy `configure/EXAMPLE_RELEASE.local` to `configure/RELEASE.local` and
 adjust the path to EPICS Base.
 
-Usually, the build system automatically detects the correct compiler and linker
-flags. However, if the `ChimeraTK-ControlSystemAdapter-config` script is not in
-the `PATH`, you have to specify the path to these scripts explicitly. In this
-case, please copy `configure/EXAMPLE_CONFIG_SITE.local` to
-`configure/CONFIG_SITE.local` and adjust the paths to these scripts.
-
 The ChimeraTK Control System Adapter for EPICS needs the
 [ChimeraTK Control System Adapter core library](https://github.com/ChimeraTK/ControlSystemAdapter/).
 
