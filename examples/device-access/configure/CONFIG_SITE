@@ -35,11 +35,6 @@ CHECK_RELEASE = YES
 #HOST_OPT = NO
 #CROSS_OPT = NO
 
-# Path to the ChimeraTK-ControlSystemAdapter-config executable. By default, it
-# is expected to be in the PATH, but one can override this by setting this
-# variable to the full path to the executable in CONFIG_SITE.local.
-CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG = ChimeraTK-ControlSystemAdapter-config
-
 # These allow developers to override the CONFIG_SITE variable
 # settings without having to modify the configure/CONFIG_SITE
 # file itself.
@@ -56,5 +51,5 @@ CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG = ChimeraTK-ControlSystemAdapter-config
 # the libraries if we do not include the linker flags here.
 
 ifndef CHIMERATK_SKIP_LDFLAGS
-  USR_LDFLAGS += $(shell $(CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG) --ldflags)
+  USR_LDFLAGS += $(shell $(pkg-config ChimeraTK-ControlSystemAdapter) --libs)
 endif

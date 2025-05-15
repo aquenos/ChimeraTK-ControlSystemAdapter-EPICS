@@ -1,4 +1,0 @@
-# Path to the ChimeraTK-ControlSystemAdapter-config executable. You only have to
-# define this, if it is not in the PATH.
-CHIMERATK_CONTROL_SYSTEM_ADAPTER_CONFIG = /path/to/ChimeraTK-ControlSystemAdapter-config
-
