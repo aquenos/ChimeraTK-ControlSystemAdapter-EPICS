@@ -39,9 +39,9 @@ CHECK_RELEASE = YES
 # CONFIG_SITE.local.
 
 ifndef CHIMERATK_SKIP_CXXFLAGS
-  USR_CXXFLAGS += $(shell $(pkg-config ChimeraTK-ControlSystemAdapter) --cflags)
+  USR_CXXFLAGS += $(shell pkg-config ChimeraTK-ControlSystemAdapter --cflags)
 endif
 
 ifndef CHIMERATK_SKIP_LDFLAGS
-  USR_LDFLAGS += $(shell $(pkg-config ChimeraTK-ControlSystemAdapter) --libs)
+  USR_LDFLAGS += $(shell pkg-config ChimeraTK-ControlSystemAdapter --libs)
 endif
