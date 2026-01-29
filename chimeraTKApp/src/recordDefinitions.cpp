@@ -69,6 +69,7 @@ epicsEnum16 getProcessErrorAlarmStatus() {
   case RecordDirection::OUTPUT:
     return WRITE_ALARM;
   }
+  throw std::out_of_range("ChimeraTK::EPICS::RecordDirection has illegal value.");
 }
 
 /**
